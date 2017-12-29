@@ -6,9 +6,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/eirsyl/apollo/pkg/proxy"
-	"github.com/eirsyl/apollo/pkg/runtime"
-	"github.com/eirsyl/apollo/pkg/utils"
+	"apollo/pkg/proxy"
+	"apollo/pkg/runtime"
+	"apollo/pkg/utils"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

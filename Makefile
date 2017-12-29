@@ -1,11 +1,12 @@
+SHELL    = /bin/bash
 PACKAGE  = apollo
 DATE    ?= $(shell date +%FT%T%z)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
 			cat $(CURDIR)/.version 2> /dev/null || echo v0)
-GOPATH   = $(CURDIR)/.gopath~
+GOPATH   = $(CURDIR)/.gopath
 BIN      = $(GOPATH)/bin
 BASE     = $(GOPATH)/src/$(PACKAGE)
-PKGS     = $(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -v "^$(PACKAGE)/vendor/"))
+PKGS     = $(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -Ev "(vendor|.gopath)"))
 TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 
 GO      = go
@@ -29,7 +30,7 @@ $(BASE): ; $(info $(M) setting GOPATH…)
 
 # Tools
 
-DEP = $(BIN)/dep/
+DEP = $(BIN)/dep
 $(BIN)/dep: | $(BASE) ; $(info $(M) building dep…)
 	$Q go get github.com/golang/dep/cmd/dep
 
@@ -83,7 +84,7 @@ test-coverage: fmt lint vendor test-coverage-tools | $(BASE) ; $(info $(M) runni
 	$Q cd $(BASE) && for pkg in $(TESTPKGS); do \
 		$(GO) test \
 			-coverpkg=$$($(GO) list -f '{{ join .Deps "\n" }}' $$pkg | \
-					grep '^$(PACKAGE)/' | grep -v '^$(PACKAGE)/vendor/' | \
+					grep '^$(PACKAGE)/' | grep -Ev '(vendor/|.gopath/)' | \
 					tr '\n' ',')$$pkg \
 			-covermode=$(COVERAGE_MODE) \
 			-coverprofile="$(COVERAGE_DIR)/coverage/`echo $$pkg | tr "/" "-"`.cover" $$pkg ;\
@@ -101,7 +102,7 @@ lint: vendor | $(BASE) $(GOMETALINTER) ; $(info $(M) running gometalinter…) @ 
 
 .PHONY: fmt
 fmt: ; $(info $(M) running gofmt…) @ ## Run gofmt on all source files
-	@ret=0 && for d in $$($(GO) list -f '{{.Dir}}' ./... | grep -v /vendor/); do \
+	@ret=0 && for d in $$($(GO) list -f '{{.Dir}}' ./... | grep -Ev "(/vendor/|/.gopath/)"); do \
 		$(GOFMT) -l -w $$d/*.go || ret=$$? ; \
 	 done ; exit $$ret
 

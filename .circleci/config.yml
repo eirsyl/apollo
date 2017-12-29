@@ -4,8 +4,10 @@ jobs:
     docker:
       - image: circleci/golang:1.9
 
-    working_directory: /go/src/github.com/eirsyl/apollo
+    working_directory: /go/src/apollo
     steps:
       - checkout
-      - run: make test
-
+      - run:
+          name: test
+          command: make test
+          no_output_timeout: 20m

@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// OptimizeRuntime func
+// OptimizeRuntime extends the open files limit in order to function properly.
 func OptimizeRuntime() {
 	var rLimit syscall.Rlimit
 	e := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
