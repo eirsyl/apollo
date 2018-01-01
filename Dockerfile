@@ -1,7 +1,5 @@
 FROM scratch
 
-COPY apollo /
-
-EXPOSE 8080
+COPY bin/apollo /
 
 ENTRYPOINT ["/apollo"]

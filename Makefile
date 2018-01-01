@@ -1,4 +1,5 @@
 SHELL    = /bin/bash
+AUTHOR   = eirsyl
 PACKAGE  = apollo
 DATE    ?= $(shell date +%FT%T%z)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
@@ -21,7 +22,7 @@ M = $(shell printf "\033[34;1m▶\033[0m")
 all: fmt lint vendor | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
 	$Q cd $(BASE) && $(GO) build \
 		-tags release \
-		-ldflags '-X $(PACKAGE)/cmd.Version=$(VERSION) -X $(PACKAGE)/cmd.BuildDate=$(DATE)' \
+		-ldflags '-X $(PACKAGE)/pkg.Version=$(VERSION) -X $(PACKAGE)/pkg.BuildDate=$(DATE)' \
 		-o bin/$(PACKAGE) main.go
 
 $(BASE): ; $(info $(M) setting GOPATH…)
@@ -97,7 +98,7 @@ test-coverage: fmt lint vendor test-coverage-tools | $(BASE) ; $(info $(M) runni
 lint: vendor | $(BASE) $(GOMETALINTER) ; $(info $(M) running gometalinter…) @ ## Run gometalinter
 	$Q cd $(BASE) && ret=0 && for pkg in $(PKGS); do \
 		folder=$$(sed s/$(PACKAGE)/./g <<< $$pkg); \
-		test -z "$$($(GOMETALINTER) $$folder | grep -Ev "vendor/" | tee /dev/stderr)" || ret=1 ; \
+		test -z "$$($(GOMETALINTER) --deadline=2m $$folder | grep -Ev "vendor/" | tee /dev/stderr)" || ret=1 ; \
 	 done ; exit $$ret
 
 .PHONY: fmt
@@ -112,6 +113,22 @@ vendor: Gopkg.lock | $(BASE) $(DEP) ; $(info $(M) retrieving dependencies…)
 	$Q cd $(BASE) && $(DEP) ensure
 	@ln -nsf . vendor/src
 	@touch $@
+
+# Docker
+
+PREFIX=$(AUTHOR)/$(PACKAGE)
+
+.PHONY: container
+container: fmt lint vendor | $(BASE) ; $(info $(M) building container…) @ ## Build container
+	$Q cd $(BASE) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
+		-tags release \
+		-ldflags '-X $(PACKAGE)/pkg.Version=$(VERSION) -X $(PACKAGE)/pkg.BuildDate=$(DATE)' \
+		-o bin/$(PACKAGE) main.go
+	$Q docker build --pull -t $(PREFIX):$(VERSION) . --no-cache
+
+.PHONY: push
+push: container
+	$Q docker push $(PREFIX):$(VERSION)
 
 # Misc
 

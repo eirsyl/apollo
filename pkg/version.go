@@ -1,4 +1,7 @@
 package pkg
 
 // Version refers to the version of this software.
-var Version = "0.0.1"
+var Version string
+
+// BuildDate refers to the date the software was built.
+var BuildDate string

@@ -14,6 +14,6 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the Apollo version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Apollo cluster manager version %s\n", pkg.Version)
+		fmt.Printf("Apollo cluster manager version %s %s\n", pkg.Version, pkg.BuildDate)
 	},
 }
