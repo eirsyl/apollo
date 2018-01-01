@@ -6,7 +6,7 @@ import (
 	"syscall"
 	"time"
 
-	"apollo/pkg/proxy"
+	"apollo/pkg/agent"
 	"apollo/pkg/runtime"
 	"apollo/pkg/utils"
 
@@ -15,11 +15,11 @@ import (
 )
 
 func init() {
-	RootCmd.AddCommand(proxyCmd)
+	RootCmd.AddCommand(agentCmd)
 }
 
-var proxyCmd = &cobra.Command{
-	Use:   "proxy",
+var agentCmd = &cobra.Command{
+	Use:   "agent",
 	Short: "Start the instance agent functionality",
 	Run: func(cmd *cobra.Command, args []string) {
 		runtime.OptimizeRuntime()
@@ -31,7 +31,7 @@ var proxyCmd = &cobra.Command{
 		signal.Notify(exitSig, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 
 		var err error
-		instanceProxy := &proxy.Proxy{}
+		instanceAgent := &agent.Agent{}
 
 		// Exit
 		go func() {
@@ -41,7 +41,7 @@ var proxyCmd = &cobra.Command{
 				log.Printf("Shutdown is forced in 5 sek")
 				go utils.ForceExit(exitSig, 5000)
 				time.Sleep(10000)
-				//err = instanceProxy.Exit()
+				//err = instanceAgent.Exit()
 				if err != nil {
 					log.Fatal(err, "Could not gracefully exit")
 					os.Exit(1)
@@ -49,9 +49,9 @@ var proxyCmd = &cobra.Command{
 			}
 		}()
 
-		err = instanceProxy.Run()
+		err = instanceAgent.Run()
 		if err != nil {
-			log.Fatal(err, "Proxy exited unexpectedly")
+			log.Fatal(err, "Agent exited unexpectedly")
 			os.Exit(1)
 		}
 	},

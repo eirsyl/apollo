@@ -1,4 +1,4 @@
-package proxy
+package agent
 
 import (
 	"context"
@@ -10,18 +10,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Proxy exports the proxy struct
-type Proxy struct {
+// Agent exports the proxy struct
+type Agent struct {
 	srv *http.Server
 }
 
 // Run func
-func (p *Proxy) Run() error {
+func (a *Agent) Run() error {
 	r := mux.NewRouter()
 
 	r.Handle("/metrics", promhttp.Handler())
 
-	p.srv = &http.Server{
+	a.srv = &http.Server{
 		Handler:      r,
 		Addr:         ":8080",
 		WriteTimeout: 15 * time.Second,
@@ -29,10 +29,10 @@ func (p *Proxy) Run() error {
 	}
 
 	log.Infof("Starting http server on %s", ":8080")
-	return p.srv.ListenAndServe()
+	return a.srv.ListenAndServe()
 }
 
 // Exit func
-func (p *Proxy) Exit() error {
-	return p.srv.Shutdown(context.Background())
+func (a *Agent) Exit() error {
+	return a.srv.Shutdown(context.Background())
 }
