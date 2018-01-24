@@ -15,6 +15,11 @@ type Agent struct {
 	srv *http.Server
 }
 
+// NewAgent initializes a new agent and returns a pointer to the instance
+func NewAgent() (*Agent, error) {
+	return &Agent{}, nil
+}
+
 // Run func
 func (a *Agent) Run() error {
 	r := mux.NewRouter()
@@ -29,7 +34,11 @@ func (a *Agent) Run() error {
 	}
 
 	log.Infof("Starting http server on %s", ":8080")
-	return a.srv.ListenAndServe()
+	err := a.srv.ListenAndServe()
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	return err
 }
 
 // Exit func

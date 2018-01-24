@@ -31,19 +31,20 @@ var agentCmd = &cobra.Command{
 		signal.Notify(exitSig, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 
 		var err error
-		instanceAgent := &agent.Agent{}
+		instanceAgent, err := agent.NewAgent()
+		if err != nil {
+			log.Fatalf("Could not initialize agent instance: %v", err)
+		}
 
 		// Exit
 		go func() {
 			for {
 				s := <-exitSig
-				log.Printf("Signal %s received, shutting down gracefully", s)
-				log.Printf("Shutdown is forced in 5 sek")
-				go utils.ForceExit(exitSig, 5000)
-				time.Sleep(10000)
-				//err = instanceAgent.Exit()
+				log.Infof("Signal %s received, shutting down gracefully", s)
+				go utils.ForceExit(exitSig, 5*time.Second)
+				err = instanceAgent.Exit()
 				if err != nil {
-					log.Fatal(err, "Could not gracefully exit")
+					log.Fatalf("Could not gracefully exit: %v", err)
 					os.Exit(1)
 				}
 			}
@@ -51,7 +52,7 @@ var agentCmd = &cobra.Command{
 
 		err = instanceAgent.Run()
 		if err != nil {
-			log.Fatal(err, "Agent exited unexpectedly")
+			log.Fatalf("Agent exited unexpectedly: %v", err)
 			os.Exit(1)
 		}
 	},

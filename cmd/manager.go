@@ -5,7 +5,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"apollo/pkg/manager"
 	"apollo/pkg/runtime"
+	"apollo/pkg/utils"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -25,12 +30,31 @@ var managerCmd = &cobra.Command{
 
 		signal.Notify(exitSig, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 
+		var err error
+		instanceManager, err := manager.NewManager()
+		if err != nil {
+			log.Fatalf("Could not initialize manager instance: %v", err)
+		}
+
 		// Exit
 		go func() {
 			for {
-				<-exitSig
+				s := <-exitSig
+				log.Infof("Signal %s received, shutting down gracefully", s)
+				go utils.ForceExit(exitSig, 5*time.Second)
+				err = instanceManager.Exit()
+				if err != nil {
+					log.Fatalf("Could not gracefully exit: %v", err)
+					os.Exit(1)
+				}
 			}
 		}()
+
+		err = instanceManager.Run()
+		if err != nil {
+			log.Fatalf("Manager exited unexpectedly: %v", err)
+			os.Exit(1)
+		}
 
 	},
 }
