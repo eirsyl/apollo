@@ -24,13 +24,15 @@ Usage:
   apollo [command]
 
 Available Commands:
+  agent       Start the instance agent functionality
+  chaos       Destroy Redis instances to test the cluster manager
   help        Help about any command
   manager     Start the cluster manager functionality
-  agent       Start the instance agent functionality
-  version     Print the Apollo version
 
 Flags:
-  -h, --help   help for apollo
+  -d, --debug     enable debug mode
+  -h, --help      help for apollo
+      --version   version for apollo
 
 Use "apollo [command] --help" for more information about a command.
 ```
@@ -38,6 +40,6 @@ Use "apollo [command] --help" for more information about a command.
 ## Getting started
 
 ```
-git clone git@github.com:eirsyl/apollo.git eirsyl/apollo
-dep ensure
+git clone git@github.com:eirsyl/apollo.git
+make
 ```
