@@ -1,5 +1,6 @@
 .idea/
 
+apollo
 /bin/
 /.gopath/
 /vendor/

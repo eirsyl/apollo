@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package api;
+
+service Manager {
+    rpc SendHealth (HealthRequest) returns (HealthResponse) {}
+}
+
+message HealthRequest {
+    bool healthy = 1;
+}
+
+message HealthResponse {
+    bool healthy = 1;
+}

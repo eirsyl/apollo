@@ -5,9 +5,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"apollo/pkg/manager"
-	"apollo/pkg/runtime"
-	"apollo/pkg/utils"
+	"github.com/eirsyl/apollo/pkg/manager"
+	"github.com/eirsyl/apollo/pkg/runtime"
+	"github.com/eirsyl/apollo/pkg/utils"
 	"time"
 
 	log "github.com/sirupsen/logrus"

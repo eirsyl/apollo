@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"apollo/pkg/chaos"
-	"apollo/pkg/runtime"
-	"apollo/pkg/utils"
+	"github.com/eirsyl/apollo/pkg/chaos"
+	"github.com/eirsyl/apollo/pkg/runtime"
+	"github.com/eirsyl/apollo/pkg/utils"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,7 +20,7 @@ func init() {
 
 var chaosCmd = &cobra.Command{
 	Use:   "chaos",
-	Short: "Destroy Redis instances to test the cluster Chaos",
+	Short: "Destroy Redis instances to test the cluster manager",
 	Long: `
 The chaos tool destroys instances in the Redis Cluster and
 watches the cleanup executed by the cluster Chaos. This

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"apollo/cmd"
 	"fmt"
+	"github.com/eirsyl/apollo/cmd"
 	log "github.com/sirupsen/logrus"
 	"os"
 )

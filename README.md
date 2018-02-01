@@ -1,6 +1,12 @@
 # Apollo [![CircleCI](https://circleci.com/gh/eirsyl/apollo.svg?style=svg&circle-token=112f280e9b22239b2ee800ca1f4f1705ed29ddf2)](https://circleci.com/gh/eirsyl/apollo)
 > Automatic cluster manager for Redis Cluster
 
+## Research goal
+
+* Expose cluster metrics for cluster monitoring
+* Track cluster incidents within a reasonable time
+* Choose a set of incidents and focus on solving each one as fast as possible
+
 ## Architecture
 
 The cluster manager consists of multiple services. 
@@ -40,6 +46,6 @@ Use "apollo [command] --help" for more information about a command.
 ## Getting started
 
 ```
-git clone git@github.com:eirsyl/apollo.git
+git clone git@github.com:eirsyl/apollo.git $GOPATH/src/github.com/eirsyl/apollo
 make
 ```

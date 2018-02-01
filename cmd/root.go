@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"apollo/pkg"
 	"fmt"
+	"github.com/eirsyl/apollo/pkg"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

@@ -4,10 +4,9 @@ PACKAGE  = apollo
 DATE    ?= $(shell date +%FT%T%z)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
 			cat $(CURDIR)/.version 2> /dev/null || echo v0)
-GOPATH   = $(CURDIR)/.gopath
 BIN      = $(GOPATH)/bin
-BASE     = $(GOPATH)/src/$(PACKAGE)
-PKGS     = $(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -Ev "(vendor|.gopath)"))
+BASE     = $(GOPATH)/src/github.com/$(AUTHOR)/$(PACKAGE)
+PKGS     = $(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -Ev "vendor"))
 TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 
 GO      = go
@@ -25,11 +24,13 @@ all: fmt lint vendor | $(BASE) ; $(info $(M) building executable…) @ ## Build 
 		-ldflags '-X $(PACKAGE)/pkg.Version=$(VERSION) -X $(PACKAGE)/pkg.BuildDate=$(DATE)' \
 		-o bin/$(PACKAGE) main.go
 
-$(BASE): ; $(info $(M) setting GOPATH…)
-	@mkdir -p $(dir $@)
-	@ln -sf $(CURDIR) $@
+$(BASE): ; $(info $(M) checking GOPATH…)
+	@echo
 
 # Tools
+.PHONY: gopath
+gopath:
+	@echo $(GOPATH)
 
 DEP = $(BIN)/dep
 $(BIN)/dep: | $(BASE) ; $(info $(M) building dep…)
@@ -55,6 +56,8 @@ $(BIN)/gocov-xml: | $(BASE) ; $(info $(M) building gocov-xml…)
 GO2XUNIT = $(BIN)/go2xunit
 $(BIN)/go2xunit: | $(BASE) ; $(info $(M) building go2xunit…)
 	$Q go get github.com/tebeka/go2xunit
+
+PROTOC = $(shell which protoc)
 
 # Tests
 
@@ -85,7 +88,7 @@ test-coverage: fmt lint vendor test-coverage-tools | $(BASE) ; $(info $(M) runni
 	$Q cd $(BASE) && for pkg in $(TESTPKGS); do \
 		$(GO) test \
 			-coverpkg=$$($(GO) list -f '{{ join .Deps "\n" }}' $$pkg | \
-					grep '^$(PACKAGE)/' | grep -Ev '(vendor/|.gopath/)' | \
+					grep '^$(PACKAGE)/' | grep -Ev 'vendor/' | \
 					tr '\n' ',')$$pkg \
 			-covermode=$(COVERAGE_MODE) \
 			-coverprofile="$(COVERAGE_DIR)/coverage/`echo $$pkg | tr "/" "-"`.cover" $$pkg ;\
@@ -96,14 +99,11 @@ test-coverage: fmt lint vendor test-coverage-tools | $(BASE) ; $(info $(M) runni
 
 .PHONY: lint
 lint: vendor | $(BASE) $(GOMETALINTER) ; $(info $(M) running gometalinter…) @ ## Run gometalinter
-	$Q cd $(BASE) && ret=0 && for pkg in $(PKGS); do \
-		folder=$$(sed s/$(PACKAGE)/./g <<< $$pkg); \
-		test -z "$$($(GOMETALINTER) --deadline=2m $$folder | grep -Ev "vendor/" | tee /dev/stderr)" || ret=1 ; \
-	 done ; exit $$ret
+	$Q cd $(BASE) && $(GOMETALINTER) --deadline=2m --vendor --skip=api ./...
 
 .PHONY: fmt
 fmt: ; $(info $(M) running gofmt…) @ ## Run gofmt on all source files
-	@ret=0 && for d in $$($(GO) list -f '{{.Dir}}' ./... | grep -Ev "(/vendor/|/.gopath/)"); do \
+	@ret=0 && for d in $$($(GO) list -f '{{.Dir}}' ./...); do \
 		$(GOFMT) -l -w $$d/*.go || ret=$$? ; \
 	 done ; exit $$ret
 
@@ -111,8 +111,12 @@ fmt: ; $(info $(M) running gofmt…) @ ## Run gofmt on all source files
 
 vendor: Gopkg.lock | $(BASE) $(DEP) ; $(info $(M) retrieving dependencies…)
 	$Q cd $(BASE) && $(DEP) ensure
-	@ln -nsf . vendor/src
 	@touch $@
+
+# GRPC
+
+gen-proto: pkg/proto | $(BASE) $(PROTOC) ; $(info $(M) generating protocol buffers…)
+	$Q cd $(BASE) && $(PROTOC) -I pkg/proto pkg/proto/* --go_out=plugins=grpc:pkg/api
 
 # Docker
 
@@ -134,8 +138,7 @@ push: container
 
 .PHONY: clean
 clean: ; $(info $(M) cleaning…)	@ ## Cleanup everything
-	@rm -rf $(GOPATH)
-	@rm -rf bin
+	@rm -rf bin vendor
 	@rm -rf test/tests.* test/coverage.*
 
 .PHONY: help
