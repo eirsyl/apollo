@@ -15,6 +15,7 @@ import (
 )
 
 func init() {
+	stringConfig(agentCmd, "redis", "r", "127.0.0.1:6379", "redis instance that the agent should manage")
 	RootCmd.AddCommand(agentCmd)
 }
 
