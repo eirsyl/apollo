@@ -2,39 +2,65 @@ package agent
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
-	"time"
 
-	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/eirsyl/apollo/pkg"
+	"github.com/eirsyl/apollo/pkg/agent/redis"
+	"github.com/eirsyl/apollo/pkg/utils"
+
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // Agent exports the proxy struct
 type Agent struct {
-	srv *http.Server
+	httpServer *HTTPServer
+	client     *redis.Client
+	redisPort  int
 }
 
 // NewAgent initializes a new agent and returns a pointer to the instance
 func NewAgent() (*Agent, error) {
-	return &Agent{}, nil
+	redisAddr := viper.GetString("redis")
+	if redisAddr == "" {
+		return nil, errors.New("The redis address cannot be empty")
+	}
+
+	client, err := redis.NewClient(redisAddr)
+	if err != nil {
+		return nil, fmt.Errorf("Could not create redis client: %v", err)
+	}
+
+	_, redisPort := utils.GetHostPort(redisAddr)
+
+	return &Agent{
+		client:    client,
+		redisPort: redisPort,
+	}, nil
 }
 
 // Run func
 func (a *Agent) Run() error {
-	r := mux.NewRouter()
-
-	r.Handle("/metrics", promhttp.Handler())
-
-	a.srv = &http.Server{
-		Handler:      r,
-		Addr:         ":8080",
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+	/*
+	* Start the agent service
+	*
+	* Features:
+	* - Monitor redis metrics
+	* - Report cluster changes to the manager
+	*
+	 */
+	httpServer, err := NewHTTPServer(
+		fmt.Sprintf(":%d", pkg.PortWindow+a.redisPort),
+	)
+	if err != nil {
+		return err
 	}
+	a.httpServer = httpServer
 
-	log.Infof("Starting http server on %s", ":8080")
-	err := a.srv.ListenAndServe()
+	log.Infof("Starting http server on %s", a.httpServer.SRV.Addr)
+	err = a.httpServer.SRV.ListenAndServe()
 	if err == http.ErrServerClosed {
 		return nil
 	}
@@ -43,5 +69,9 @@ func (a *Agent) Run() error {
 
 // Exit func
 func (a *Agent) Exit() error {
-	return a.srv.Shutdown(context.Background())
+	err := a.httpServer.SRV.Shutdown(context.Background())
+	if err != nil {
+		return err
+	}
+	return a.client.Shutdown()
 }

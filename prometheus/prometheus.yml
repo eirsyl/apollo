@@ -1,0 +1,25 @@
+global:
+  evaluation_interval: 10s
+  external_labels:
+      monitor: 'apollo'
+
+scrape_configs:
+  - job_name: 'apollo-agent'
+    scrape_interval: 5s
+    static_configs:
+      - targets:
+        - 'agent0:21000'
+        - 'agent1:21001'
+        - 'agent2:21002'
+        - 'agent3:21003'
+        - 'agent4:21004'
+        - 'agent5:21005'
+        - 'agent6:21006'
+        - 'agent7:21007'
+        - 'agent8:21008'
+
+  - job_name: 'apollo-manager'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['manager:8000']
+

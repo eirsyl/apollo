@@ -123,12 +123,13 @@ gen-proto: pkg/proto | $(BASE) $(PROTOC) ; $(info $(M) generating protocol buffe
 PREFIX=$(AUTHOR)/$(PACKAGE)
 
 .PHONY: container
-container: fmt lint vendor | $(BASE) ; $(info $(M) building container…) @ ## Build container
+container: vendor | $(BASE) ; $(info $(M) building container…) @ ## Build container
 	$Q cd $(BASE) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
 		-tags release \
 		-ldflags '-X $(PACKAGE)/pkg.Version=$(VERSION) -X $(PACKAGE)/pkg.BuildDate=$(DATE)' \
 		-o bin/$(PACKAGE) main.go
 	$Q docker build --pull -t $(PREFIX):$(VERSION) . --no-cache
+	$Q docker tag $(PREFIX):$(VERSION) $(PREFIX):latest
 
 .PHONY: push
 push: container

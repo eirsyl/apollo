@@ -2,17 +2,15 @@ package manager
 
 import (
 	"context"
-	"log"
-	"net"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"net/http"
 
-	pb "github.com/eirsyl/apollo/pkg/api"
+	log "github.com/sirupsen/logrus"
 )
 
 // Manager exports the manager struct used to operate an manager.
 type Manager struct {
+	httpServer *HTTPServer
 }
 
 // NewManager initializes a new manager instance and returns a pinter to it.
@@ -22,29 +20,31 @@ func NewManager() (*Manager, error) {
 
 // Run starts the manager
 func (m *Manager) Run() error {
-	lis, err := net.Listen("tcp", "127.0.0.1:8080")
+	/*
+	* Start the manager service
+	*
+	* Export metrics on http
+	* GRPC server for agent to manager communication
+	*
+	 */
+	httpServer, err := NewHTTPServer(
+		":8000",
+	)
 	if err != nil {
 		return err
 	}
-	s := grpc.NewServer()
-	pb.RegisterManagerServer(s, &server{})
-	// Register reflection service on gRPC server.
-	reflection.Register(s)
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+	m.httpServer = httpServer
 
-	return nil
+	log.Infof("Starting http server on %s", m.httpServer.SRV.Addr)
+	err = m.httpServer.SRV.ListenAndServe()
+	if err == http.ErrServerClosed {
+		return nil
+	}
+	return err
 }
 
 // Exit gracefully shuts down the manager
 func (m *Manager) Exit() error {
-	return nil
-}
-
-type server struct {
-}
-
-func (s *server) SendHealth(ctx context.Context, in *pb.HealthRequest) (*pb.HealthResponse, error) {
-	return &pb.HealthResponse{Healthy: !in.Healthy}, nil
+	err := m.httpServer.SRV.Shutdown(context.Background())
+	return err
 }
