@@ -1,5 +1,5 @@
 .idea/
-
+.*.swp
 apollo
 /bin/
 /.gopath/

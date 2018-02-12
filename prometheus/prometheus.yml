@@ -8,18 +8,18 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
       - targets:
-        - 'agent0:21000'
-        - 'agent1:21001'
-        - 'agent2:21002'
-        - 'agent3:21003'
-        - 'agent4:21004'
-        - 'agent5:21005'
-        - 'agent6:21006'
-        - 'agent7:21007'
-        - 'agent8:21008'
+        - '127.0.0.1:8000'
+        - '127.0.0.1:8001'
+        - '127.0.0.1:8002'
+        - '127.0.0.1:8003'
+        - '127.0.0.1:8004'
+        - '127.0.0.1:8005'
+        - '127.0.0.1:8006'
+        - '127.0.0.1:8007'
+        - '127.0.0.1:8008'
 
   - job_name: 'apollo-manager'
     scrape_interval: 5s
     static_configs:
-      - targets: ['manager:8000']
+      - targets: ['127.0.0.1:8000']
 

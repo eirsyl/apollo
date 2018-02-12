@@ -1,0 +1,216 @@
+version: "3"
+
+volumes:
+    prometheus_data: {}
+    grafana_data: {}
+
+networks:
+  dockernet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.0.0/24
+  redisnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.1.0/24
+
+
+services:
+    redis0:
+        image: redis
+        command:
+            - --port
+            - '6000'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.10'
+    redis1:
+        image: redis
+        command:
+            - --port
+            - '6001'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.11'
+    redis2:
+        image: redis
+        command:
+            - --port
+            - '6002'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.12'
+    redis3:
+        image: redis
+        command:
+            - --port
+            - '6003'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.13'
+    redis4:
+        image: redis
+        command:
+            - --port
+            - '6004'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.14'
+    redis5:
+        image: redis
+        command:
+            - --port
+            - '6005'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.15'
+    redis6:
+        image: redis
+        command:
+            - --port
+            - '6006'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.16'
+    redis7:
+        image: redis
+        command:
+            - --port
+            - '6007'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.17'
+    redis8:
+        image: redis
+        command:
+            - --port
+            - '6008'
+            - --cluster-enabled
+            - 'yes'
+        networks:
+            redisnet:
+              ipv4_address: '172.16.1.18'
+    manager:
+      image: eirsyl/apollo:latest
+      command: manager
+      networks:
+      - dockernet
+      ports:
+      - 127.0.0.1:8000:8000
+      - 127.0.0.1:8080:8080
+    agent0:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis0:6000
+      links:
+      - redis0
+      networks:
+      - dockernet
+    agent1:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis1:6001
+      links:
+      - redis1
+      networks:
+      - dockernet
+    agent2:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis2:6002
+      links:
+      - redis2
+      networks:
+      - dockernet
+    agent3:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis3:6003
+      links:
+      - redis3
+      networks:
+      - dockernet
+    agent4:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis4:6004
+      links:
+      - redis4
+      networks:
+      - dockernet
+    agent5:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis5:6005
+      links:
+      - redis5
+      networks:
+      - dockernet
+    agent6:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis6:6006
+      links:
+      - redis6
+      networks:
+      - dockernet
+    agent7:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis7:6007
+      links:
+      - redis7
+      networks:
+      - dockernet
+    agent8:
+      image: eirsyl/apollo:latest
+      command: agent --redis=redis8:6008
+      links:
+      - redis8
+      networks:
+      - dockernet
+    prometheus:
+        image: prom/prometheus
+        volumes:
+          - ./prometheus/:/etc/prometheus/
+          - prometheus_data:/prometheus
+        command:
+          - '--config.file=/etc/prometheus/prometheus.yml'
+          - '--storage.tsdb.path=/prometheus'
+        networks:
+            - dockernet
+        ports:
+          - 127.0.0.1:9090:9090
+        links:
+          - manager
+          - agent0
+          - agent1
+          - agent2
+          - agent3
+          - agent4
+          - agent5
+          - agent6
+          - agent7
+          - agent8
+    grafana:
+        image: grafana/grafana
+        depends_on:
+          - prometheus
+        networks:
+          - dockernet
+        links:
+          - prometheus
+        volumes:
+          - grafana_data:/var/lib/grafana
+        ports:
+          - 127.0.0.1:3000:3000
