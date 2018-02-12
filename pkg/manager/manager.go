@@ -50,7 +50,11 @@ func (m *Manager) Run() error {
 
 	// Start the http debug server
 	go func(errChan chan error) {
-		httpServer, err := NewHTTPServer(m.httpAddr)
+		httpServer, err := NewHTTPServer(m.httpAddr, map[string]string{
+			"module":      "manager",
+			"managerAddr": m.managerAddr,
+			"httpAddr":    m.httpAddr,
+		})
 		if err != nil {
 			errChan <- err
 			return

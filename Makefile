@@ -5,7 +5,8 @@ DATE    ?= $(shell date +%FT%T%z)
 VERSION ?= $(shell git describe --tags --always --dirty --match=v* 2> /dev/null || \
 			cat $(CURDIR)/.version 2> /dev/null || echo v0)
 BIN      = $(GOPATH)/bin
-BASE     = $(GOPATH)/src/github.com/$(AUTHOR)/$(PACKAGE)
+IMPORT   = github.com/$(AUTHOR)/$(PACKAGE)
+BASE     = $(GOPATH)/src/$(IMPORT)
 PKGS     = $(or $(PKG),$(shell cd $(BASE) && env GOPATH=$(GOPATH) $(GO) list ./... | grep -Ev "vendor"))
 TESTPKGS = $(shell env GOPATH=$(GOPATH) $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
 
@@ -21,7 +22,7 @@ M = $(shell printf "\033[34;1m▶\033[0m")
 all: fmt lint vendor | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
 	$Q cd $(BASE) && $(GO) build \
 		-tags release \
-		-ldflags '-X $(PACKAGE)/pkg.Version=$(VERSION) -X $(PACKAGE)/pkg.BuildDate=$(DATE)' \
+		-ldflags '-X $(IMPORT)/pkg.Version=$(VERSION) -X $(IMPORT)/pkg.BuildDate=$(DATE)' \
 		-o bin/$(PACKAGE) main.go
 
 $(BASE): ; $(info $(M) checking GOPATH…)
@@ -126,7 +127,7 @@ PREFIX=$(AUTHOR)/$(PACKAGE)
 container: vendor | $(BASE) ; $(info $(M) building container…) @ ## Build container
 	$Q cd $(BASE) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
 		-tags release \
-		-ldflags '-X $(PACKAGE)/pkg.Version=$(VERSION) -X $(PACKAGE)/pkg.BuildDate=$(DATE)' \
+		-ldflags '-X $(IMPORT)/pkg.Version=$(VERSION) -X $(IMPORT)/pkg.BuildDate=$(DATE)' \
 		-o bin/$(PACKAGE) main.go
 	$Q docker build --pull -t $(PREFIX):$(VERSION) . --no-cache
 	$Q docker tag $(PREFIX):$(VERSION) $(PREFIX):latest

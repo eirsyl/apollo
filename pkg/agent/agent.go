@@ -37,14 +37,20 @@ func NewAgent() (*Agent, error) {
 	}
 
 	_, redisPort := utils.GetHostPort(redisAddr)
-	httpPort := fmt.Sprintf(":%d", pkg.HTTPPortWindow+redisPort)
-	httpServer, err := NewHTTPServer(httpPort)
+
+	grpcPort := fmt.Sprintf(":%d", pkg.GRPCPortWindow+redisPort)
+	executorServer, err := NewExecutor(grpcPort, managerAddr, client)
 	if err != nil {
 		return nil, err
 	}
 
-	grpcPort := fmt.Sprintf(":%d", pkg.GRPCPortWindow+redisPort)
-	executorServer, err := NewExecutor(grpcPort, managerAddr, client)
+	httpPort := fmt.Sprintf(":%d", pkg.HTTPPortWindow+redisPort)
+	httpServer, err := NewHTTPServer(httpPort, map[string]string{
+		"module":      "agent",
+		"redisAddr":   redisAddr,
+		"managerAddr": managerAddr,
+		"agentAddr":   grpcPort,
+	})
 	if err != nil {
 		return nil, err
 	}
