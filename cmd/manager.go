@@ -15,6 +15,8 @@ import (
 )
 
 func init() {
+	stringConfig(agentCmd, "managerAddr", "", ":8080", "manger listen address")
+	stringConfig(agentCmd, "debugAddr", "", ":8081", "debug server listen address")
 	RootCmd.AddCommand(managerCmd)
 }
 

@@ -7,17 +7,33 @@ import (
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // Manager exports the manager struct used to operate an manager.
 type Manager struct {
+	managerAddr  string
+	httpAddr     string
 	httpServer   *HTTPServer
 	orchestrator *orchestrator.Server
 }
 
 // NewManager initializes a new manager instance and returns a pinter to it.
 func NewManager() (*Manager, error) {
-	return &Manager{}, nil
+	managerAddr := viper.GetString("managerAddr")
+	if managerAddr == "" {
+		return nil, errors.New("The manager address cannot be empty")
+	}
+
+	httpAddr := viper.GetString("debugAddr")
+	if httpAddr == "" {
+		return nil, errors.New("The debug address cannot be empty")
+	}
+
+	return &Manager{
+		managerAddr: managerAddr,
+		httpAddr:    httpAddr,
+	}, nil
 }
 
 // Run starts the manager
@@ -34,9 +50,7 @@ func (m *Manager) Run() error {
 
 	// Start the http debug server
 	go func(errChan chan error) {
-		httpServer, err := NewHTTPServer(
-			":8000",
-		)
+		httpServer, err := NewHTTPServer(m.httpAddr)
 		if err != nil {
 			errChan <- err
 			return
@@ -50,14 +64,14 @@ func (m *Manager) Run() error {
 
 	// Start orchestrator server
 	go func(errChan chan error) {
-		orchestratorServer, err := orchestrator.NewServer(":8080")
+		orchestratorServer, err := orchestrator.NewServer(m.managerAddr)
 		if err != nil {
 			errChan <- err
 			return
 		}
 
 		m.orchestrator = orchestratorServer
-		log.Infof("Starting orchestrator server on %s", "8080")
+		log.Infof("Starting orchestrator server on %s", m.managerAddr)
 		errChan <- m.orchestrator.Run()
 	}(errChan)
 

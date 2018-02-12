@@ -31,7 +31,8 @@ func (c *Client) Health() (InstanceHealth, error) {
 	return InstanceHealth{}, nil
 }
 
-// RunPreflightTests runs a set of preflight tests to make sure the instance is compatible with apollo
+// RunPreflightTests runs a set of preflight tests to make sure the
+// instance is compatible with apollo
 func (c *Client) RunPreflightTests() error {
 	log.Infof("Running preflight tests on %v", c.redis)
 	return nil
