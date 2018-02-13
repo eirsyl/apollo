@@ -65,13 +65,14 @@ func NewAgent() (*Agent, error) {
 // Run the agent main functionality
 func (a *Agent) Run() error {
 	/*
-	* Start the agent service
-	*
-	* Features:
-	* - Monitor redis metrics
-	* - Report cluster changes to the manager
-	*
-	 */
+			* Start the agent service
+			*
+			* Features:
+			* - Monitor redis metrics
+			* - Report cluster changes to the manager
+		    * - Run the reconciliation loop to maintain instance state
+			*
+	*/
 	var errChan = make(chan error, 1)
 
 	go func(errChan chan error) {

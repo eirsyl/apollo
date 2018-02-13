@@ -19,3 +19,15 @@ func stringConfig(cmd *cobra.Command, name, short, value, description string) {
 		log.Warnf("Could not bind viper value to env: %v", err)
 	}
 }
+
+func boolConfig(cmd *cobra.Command, name, short string, value bool, description string) {
+	cmd.PersistentFlags().BoolP(name, short, value, description)
+	err := viper.BindPFlag(name, cmd.PersistentFlags().Lookup(name))
+	if err != nil {
+		log.Warnf("Could not bind flag to viper: %v", err)
+	}
+	err = viper.BindEnv(name, strings.ToUpper(name))
+	if err != nil {
+		log.Warnf("Could not bind viper value to env: %v", err)
+	}
+}

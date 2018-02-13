@@ -1,14 +1,12 @@
 package orchestrator
 
 import (
-	"fmt"
+	"context"
 	pb "github.com/eirsyl/apollo/pkg/api"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	log "github.com/sirupsen/logrus"
 	grpc "google.golang.org/grpc"
-	"io"
 	"net"
-	"time"
 )
 
 // Server implements the GRPC orchestrator server used by agents to coordinate
@@ -51,23 +49,7 @@ func (s *Server) Shutdown() error {
 }
 
 // AgentHealth grpc endpoint
-func (s *Server) AgentHealth(stream pb.Manager_AgentHealthServer) error {
-	for {
-		req, err := stream.Recv()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-		fmt.Printf("Received: %d\n", req.InstanceId)
-		time.Sleep(2 * time.Second)
-		resp := &pb.HealthResponse{
-			Ack: true,
-		}
-		err = stream.Send(resp)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func (s *Server) AgentHealth(ctx context.Context, req *pb.HealthRequest) (*pb.HealthResponse, error) {
+	log.Infof("Request: %v", req)
+	return &pb.HealthResponse{Ack: true}, nil
 }

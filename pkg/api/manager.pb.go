@@ -19,6 +19,8 @@ var _ = math.Inf
 
 type HealthRequest struct {
 	InstanceId string `protobuf:"bytes,1,opt,name=instanceId" json:"instanceId,omitempty"`
+	Ready      bool   `protobuf:"varint,2,opt,name=ready" json:"ready,omitempty"`
+	Detail     string `protobuf:"bytes,3,opt,name=detail" json:"detail,omitempty"`
 }
 
 func (m *HealthRequest) Reset()                    { *m = HealthRequest{} }
@@ -29,6 +31,20 @@ func (*HealthRequest) Descriptor() ([]byte, []int) { return fileDescriptor2, []i
 func (m *HealthRequest) GetInstanceId() string {
 	if m != nil {
 		return m.InstanceId
+	}
+	return ""
+}
+
+func (m *HealthRequest) GetReady() bool {
+	if m != nil {
+		return m.Ready
+	}
+	return false
+}
+
+func (m *HealthRequest) GetDetail() string {
+	if m != nil {
+		return m.Detail
 	}
 	return ""
 }
@@ -65,7 +81,7 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for Manager service
 
 type ManagerClient interface {
-	AgentHealth(ctx context.Context, opts ...grpc.CallOption) (Manager_AgentHealthClient, error)
+	AgentHealth(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 }
 
 type managerClient struct {
@@ -76,100 +92,70 @@ func NewManagerClient(cc *grpc.ClientConn) ManagerClient {
 	return &managerClient{cc}
 }
 
-func (c *managerClient) AgentHealth(ctx context.Context, opts ...grpc.CallOption) (Manager_AgentHealthClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_Manager_serviceDesc.Streams[0], c.cc, "/api.Manager/AgentHealth", opts...)
+func (c *managerClient) AgentHealth(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
+	out := new(HealthResponse)
+	err := grpc.Invoke(ctx, "/api.Manager/AgentHealth", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &managerAgentHealthClient{stream}
-	return x, nil
-}
-
-type Manager_AgentHealthClient interface {
-	Send(*HealthRequest) error
-	Recv() (*HealthResponse, error)
-	grpc.ClientStream
-}
-
-type managerAgentHealthClient struct {
-	grpc.ClientStream
-}
-
-func (x *managerAgentHealthClient) Send(m *HealthRequest) error {
-	return x.ClientStream.SendMsg(m)
-}
-
-func (x *managerAgentHealthClient) Recv() (*HealthResponse, error) {
-	m := new(HealthResponse)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+	return out, nil
 }
 
 // Server API for Manager service
 
 type ManagerServer interface {
-	AgentHealth(Manager_AgentHealthServer) error
+	AgentHealth(context.Context, *HealthRequest) (*HealthResponse, error)
 }
 
 func RegisterManagerServer(s *grpc.Server, srv ManagerServer) {
 	s.RegisterService(&_Manager_serviceDesc, srv)
 }
 
-func _Manager_AgentHealth_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ManagerServer).AgentHealth(&managerAgentHealthServer{stream})
-}
-
-type Manager_AgentHealthServer interface {
-	Send(*HealthResponse) error
-	Recv() (*HealthRequest, error)
-	grpc.ServerStream
-}
-
-type managerAgentHealthServer struct {
-	grpc.ServerStream
-}
-
-func (x *managerAgentHealthServer) Send(m *HealthResponse) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func (x *managerAgentHealthServer) Recv() (*HealthRequest, error) {
-	m := new(HealthRequest)
-	if err := x.ServerStream.RecvMsg(m); err != nil {
+func _Manager_AgentHealth_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthRequest)
+	if err := dec(in); err != nil {
 		return nil, err
 	}
-	return m, nil
+	if interceptor == nil {
+		return srv.(ManagerServer).AgentHealth(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Manager/AgentHealth",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagerServer).AgentHealth(ctx, req.(*HealthRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 var _Manager_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "api.Manager",
 	HandlerType: (*ManagerServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams: []grpc.StreamDesc{
+	Methods: []grpc.MethodDesc{
 		{
-			StreamName:    "AgentHealth",
-			Handler:       _Manager_AgentHealth_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
+			MethodName: "AgentHealth",
+			Handler:    _Manager_AgentHealth_Handler,
 		},
 	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "manager.proto",
 }
 
 func init() { proto.RegisterFile("manager.proto", fileDescriptor2) }
 
 var fileDescriptor2 = []byte{
-	// 154 bytes of a gzipped FileDescriptorProto
+	// 184 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcd, 0x4d, 0xcc, 0x4b,
-	0x4c, 0x4f, 0x2d, 0xd2, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x54, 0xd2,
-	0xe7, 0xe2, 0xf5, 0x48, 0x4d, 0xcc, 0x29, 0xc9, 0x08, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0x11,
+	0x4c, 0x4f, 0x2d, 0xd2, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x54, 0x8a,
+	0xe5, 0xe2, 0xf5, 0x48, 0x4d, 0xcc, 0x29, 0xc9, 0x08, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0x11,
 	0x92, 0xe3, 0xe2, 0xca, 0xcc, 0x2b, 0x2e, 0x49, 0xcc, 0x4b, 0x4e, 0xf5, 0x4c, 0x91, 0x60, 0x54,
-	0x60, 0xd4, 0xe0, 0x0c, 0x42, 0x12, 0x51, 0x52, 0xe2, 0xe2, 0x83, 0x69, 0x28, 0x2e, 0xc8, 0xcf,
-	0x2b, 0x4e, 0x15, 0x12, 0xe0, 0x62, 0x4e, 0x4c, 0xce, 0x06, 0x2b, 0xe5, 0x08, 0x02, 0x31, 0x8d,
-	0xdc, 0xb9, 0xd8, 0x7d, 0x21, 0x56, 0x09, 0xd9, 0x70, 0x71, 0x3b, 0xa6, 0xa7, 0xe6, 0x95, 0x40,
-	0xf4, 0x08, 0x09, 0xe9, 0x25, 0x16, 0x64, 0xea, 0xa1, 0xd8, 0x28, 0x25, 0x8c, 0x22, 0x06, 0x31,
-	0x54, 0x89, 0x41, 0x83, 0xd1, 0x80, 0x31, 0x89, 0x0d, 0xec, 0x52, 0x63, 0x40, 0x00, 0x00, 0x00,
-	0xff, 0xff, 0x36, 0x37, 0xf9, 0xd2, 0xba, 0x00, 0x00, 0x00,
+	0x60, 0xd4, 0xe0, 0x0c, 0x42, 0x12, 0x11, 0x12, 0xe1, 0x62, 0x2d, 0x4a, 0x4d, 0x4c, 0xa9, 0x94,
+	0x60, 0x52, 0x60, 0xd4, 0xe0, 0x08, 0x82, 0x70, 0x84, 0xc4, 0xb8, 0xd8, 0x52, 0x52, 0x4b, 0x12,
+	0x33, 0x73, 0x24, 0x98, 0xc1, 0x3a, 0xa0, 0x3c, 0x25, 0x25, 0x2e, 0x3e, 0x98, 0xf1, 0xc5, 0x05,
+	0xf9, 0x79, 0xc5, 0xa9, 0x42, 0x02, 0x5c, 0xcc, 0x89, 0xc9, 0xd9, 0x60, 0x83, 0x39, 0x82, 0x40,
+	0x4c, 0x23, 0x67, 0x2e, 0x76, 0x5f, 0x88, 0xc3, 0x84, 0x2c, 0xb8, 0xb8, 0x1d, 0xd3, 0x53, 0xf3,
+	0x4a, 0x20, 0x7a, 0x84, 0x84, 0xf4, 0x12, 0x0b, 0x32, 0xf5, 0x50, 0xdc, 0x27, 0x25, 0x8c, 0x22,
+	0x06, 0x31, 0x54, 0x89, 0x21, 0x89, 0x0d, 0xec, 0x27, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff,
+	0x43, 0x1b, 0xf7, 0x44, 0xe4, 0x00, 0x00, 0x00,
 }

@@ -3,11 +3,13 @@ syntax = "proto3";
 package api;
 
 service Manager {
-    rpc AgentHealth (stream HealthRequest) returns (stream HealthResponse) {}
+    rpc AgentHealth (HealthRequest) returns (HealthResponse) {}
 }
 
 message HealthRequest {
     string instanceId = 1;
+    bool ready = 2;
+    string detail = 3;
 }
 
 message HealthResponse {

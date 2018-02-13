@@ -17,6 +17,7 @@ type Executor struct {
 	managerAddr string
 	listener    *net.Listener
 	server      *grpc.Server
+	loop        *ReconciliationLoop
 }
 
 // NewExecutor creates a new Executor instance
@@ -31,12 +32,18 @@ func NewExecutor(agentAddr, managerAddr string, redis *redis.Client) (*Executor,
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 	)
 
+	loop, err := NewReconciliationLoop(redis, managerAddr)
+	if err != nil {
+		return nil, err
+	}
+
 	executor := &Executor{
 		agentAddr:   agentAddr,
 		managerAddr: managerAddr,
 		redis:       redis,
 		listener:    &lis,
 		server:      server,
+		loop:        loop,
 	}
 
 	log.Info("Initializing executor server")
@@ -47,8 +54,17 @@ func NewExecutor(agentAddr, managerAddr string, redis *redis.Client) (*Executor,
 
 // Run starts the executor instance
 func (e *Executor) Run() error {
-	err := e.server.Serve(*e.listener)
-	return err
+	var errChan = make(chan error, 1)
+
+	go func() {
+		errChan <- e.server.Serve(*e.listener)
+	}()
+
+	go func() {
+		errChan <- e.loop.Run()
+	}()
+
+	return <-errChan
 }
 
 // GetListenAddr returns the address the executor server is listening on
