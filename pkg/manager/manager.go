@@ -3,9 +3,11 @@ package manager
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator"
 
+	bolt "github.com/coreos/bbolt"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -16,10 +18,17 @@ type Manager struct {
 	httpAddr     string
 	httpServer   *HTTPServer
 	orchestrator *orchestrator.Server
+	db           *bolt.DB
 }
 
 // NewManager initializes a new manager instance and returns a pinter to it.
 func NewManager() (*Manager, error) {
+	db, err := bolt.Open("my.db", 0600, &bolt.Options{Timeout: 5 * time.Second})
+	if err != nil {
+		log.Warnf("Could not open DB: %v", err)
+		return nil, err
+	}
+
 	managerAddr := viper.GetString("managerAddr")
 	if managerAddr == "" {
 		return nil, errors.New("The manager address cannot be empty")
@@ -33,6 +42,7 @@ func NewManager() (*Manager, error) {
 	return &Manager{
 		managerAddr: managerAddr,
 		httpAddr:    httpAddr,
+		db:          db,
 	}, nil
 }
 
@@ -88,14 +98,24 @@ func (m *Manager) Run() error {
 
 // Exit gracefully shuts down the manager
 func (m *Manager) Exit() error {
+	log.Info("Closing http server")
 	err := m.httpServer.SRV.Shutdown(context.Background())
 	if err != nil {
 		log.Warnf("Could not gracefully stop the http server: %v", err)
 
 	}
+
+	log.Info("Closing orchestrator")
 	err = m.orchestrator.Shutdown()
 	if err != nil {
 		log.Warnf("Could not stop orchestrator server: %v", err)
 	}
+
+	log.Info("Closing DB")
+	err = m.db.Close()
+	if err != nil {
+		log.Warnf("Could not close DB: %v", err)
+	}
+
 	return nil
 }

@@ -13,14 +13,15 @@ import (
 
 // ReconciliationLoop is responsible for ensuring redis instance state
 type ReconciliationLoop struct {
-	redis    *redis.Client
-	client   pb.ManagerClient
-	listener *grpc.ClientConn
-	done     chan interface{}
+	redis         *redis.Client
+	client        pb.ManagerClient
+	listener      *grpc.ClientConn
+	done          chan bool
+	scrapeResults chan redis.ScrapeResult
 }
 
 // NewReconciliationLoop creates a new loop and returns the instance
-func NewReconciliationLoop(redis *redis.Client, managerAddr string) (*ReconciliationLoop, error) {
+func NewReconciliationLoop(r *redis.Client, managerAddr string) (*ReconciliationLoop, error) {
 	var opts []grpc.DialOption
 	useTLS := viper.GetBool("managerTLS")
 
@@ -36,9 +37,11 @@ func NewReconciliationLoop(redis *redis.Client, managerAddr string) (*Reconcilia
 	client := pb.NewManagerClient(conn)
 
 	return &ReconciliationLoop{
-		redis:    redis,
-		client:   client,
-		listener: conn,
+		redis:         r,
+		client:        client,
+		listener:      conn,
+		done:          make(chan bool),
+		scrapeResults: make(chan redis.ScrapeResult),
 	}, nil
 }
 
@@ -55,11 +58,11 @@ func (r *ReconciliationLoop) Run() error {
 	* - Go to record cluster state
 	 */
 
-	var precheckDone = make(chan interface{}, 1)
+	var precheckDone = make(chan bool)
 
 	go func() {
-		r.Prechecks()
-		precheckDone <- nil
+		r.prechecks()
+		precheckDone <- true
 	}()
 
 	select {
@@ -72,13 +75,15 @@ func (r *ReconciliationLoop) Run() error {
 		log.Infof("Prechecks passed, starting reconciler")
 	}
 
+	go r.collectScrape()
+
 	func() {
 		for {
 			select {
 			case <-r.done:
 				return
-			case <-time.After(10 * time.Second):
-				err := r.Iteration()
+			case <-time.After(2 * time.Second):
+				err := r.iteration()
 				if err != nil {
 					log.Warnf("ReconciliationLoop iteration error: %v", err)
 				}
@@ -89,8 +94,7 @@ func (r *ReconciliationLoop) Run() error {
 	return nil
 }
 
-// Prechecks runs the prechecks and report the result using a channel
-func (r *ReconciliationLoop) Prechecks() {
+func (r *ReconciliationLoop) prechecks() {
 	for {
 		err := r.redis.RunPreflightTests()
 		if err != nil {
@@ -104,8 +108,16 @@ func (r *ReconciliationLoop) Prechecks() {
 	}
 }
 
-// Iteration represents one iteration of the reconciliation loop
-func (r *ReconciliationLoop) Iteration() error {
+func (r *ReconciliationLoop) iteration() error {
+	log.Debug("Starting new iteration")
+	// Scrape instance information
+	err := r.redis.ScrapeInformation(&r.scrapeResults)
+	if err != nil {
+		log.Warnf("Could not scrape instance information: %v", err)
+	} else {
+		log.Debug("Instance scrape success")
+	}
+
 	status := pb.HealthRequest{
 		InstanceId: "localhost",
 		Ready:      false,
@@ -120,9 +132,17 @@ func (r *ReconciliationLoop) Iteration() error {
 	return nil
 }
 
+func (r *ReconciliationLoop) collectScrape() {
+	log.Info("Collecting scrape metrics")
+	for {
+		scrapeResult := <-r.scrapeResults
+		log.Info(scrapeResult)
+	}
+}
+
 // Shutdown stops the loop
 func (r *ReconciliationLoop) Shutdown() error {
-	r.done <- nil
+	r.done <- true
 
 	defer func() {
 		err := r.listener.Close()

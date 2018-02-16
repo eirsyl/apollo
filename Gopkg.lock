@@ -8,6 +8,12 @@
   revision = "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9"
 
 [[projects]]
+  name = "github.com/coreos/bbolt"
+  packages = ["."]
+  revision = "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
+  version = "v1.3.0"
+
+[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
@@ -190,6 +196,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5e626f97c5b604921f5dad8711527dfd1771d1e9d9d8db5af8644880349fec44"
+  inputs-digest = "ae7cbed462208e89651b4289a88ba17aebbbbbad158613017cb74d239d3e0d25"
   solver-name = "gps-cdcl"
   solver-version = 1

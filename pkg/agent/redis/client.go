@@ -38,12 +38,12 @@ func (c *Client) RunPreflightTests() error {
 	log.Infof("Running preflight tests on %v", c.redis)
 
 	var (
-		scrapes = make(chan scrapeResult)
-		wg      sync.WaitGroup
+		scrapes = make(chan ScrapeResult)
 		details []string
+		wg      sync.WaitGroup
 	)
-	wg.Add(2)
 
+	wg.Add(1)
 	go func() {
 		requirements := map[string]float64{
 			"cluster_enabled": 1,
@@ -54,13 +54,11 @@ func (c *Client) RunPreflightTests() error {
 				details = append(details, fmt.Sprintf("%s: invalid value", scrape.Name))
 			}
 		}
-
 		wg.Done()
 	}()
 
 	err := c.collectInfo(&scrapes)
 	close(scrapes)
-	wg.Done()
 	if err != nil {
 		return err
 	}
@@ -73,11 +71,17 @@ func (c *Client) RunPreflightTests() error {
 	return nil
 }
 
+// ScrapeInformation returns collected info from the redis instance
+// the information is sent into the given channel
+func (c *Client) ScrapeInformation(scrapes *chan ScrapeResult) error {
+	return c.collectInfo(scrapes)
+}
+
 /*
  * Private functions
  */
 
-func (c *Client) collectInfo(scrapes *chan scrapeResult) error {
+func (c *Client) collectInfo(scrapes *chan ScrapeResult) error {
 	config, err := c.redis.ConfigGet("*").Result()
 	if err != nil {
 		return err
@@ -90,14 +94,13 @@ func (c *Client) collectInfo(scrapes *chan scrapeResult) error {
 	}
 	_ = extractInfoMetrics(info, scrapes)
 
-	if strings.Contains("info", "cluster_enabled:1") {
+	if strings.Contains(info, "cluster_enabled:1") {
 		info, err = c.redis.ClusterInfo().Result()
 		if err != nil {
 			return err
 		}
 		_ = extractInfoMetrics(info, scrapes)
 	}
-
 	return nil
 }
 

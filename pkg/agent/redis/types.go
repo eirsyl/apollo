@@ -19,7 +19,8 @@ func (e *ErrInstanceIncompatible) Error() string {
 	return fmt.Sprintf("Instance incompatible: %v", e.details)
 }
 
-type scrapeResult struct {
+// ScrapeResult contains instance information collected from the redis instance
+type ScrapeResult struct {
 	Name  string
 	Value float64
 }

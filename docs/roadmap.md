@@ -1,9 +1,10 @@
 # Roadmap
 
-* Install GRPC and establish communication between the components
-* Install the redis client library
-* Fix the mapping between each agent and a redis instance
-* Collect instance metrics
+# TODO:
+
+- [ ] Lookup instance name from `cluster nodes`
+- [ ] Make usage of the collected information from the info commands
+- [ ] Manager should store the cluster topology
 
 # System properties
 

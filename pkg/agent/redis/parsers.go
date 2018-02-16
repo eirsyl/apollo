@@ -21,10 +21,12 @@ func extractVal(s string, separator string) (string, float64, error) {
 	return split[0], val, err
 }
 
-func extractConfigMetrics(config []interface{}, scrapes *chan scrapeResult) error {
+func extractConfigMetrics(config []interface{}, scrapes *chan ScrapeResult) error {
 	if len(config)%2 != 0 {
 		return errors.New("Invalid redis config")
 	}
+
+	log.Debug("Extracting config information")
 
 	for pos := 0; pos < len(config)/2; pos++ {
 		strKey := config[pos*2].(string)
@@ -38,7 +40,7 @@ func extractConfigMetrics(config []interface{}, scrapes *chan scrapeResult) erro
 		}
 
 		if val, err := strconv.ParseFloat(strVal, 64); err == nil {
-			*scrapes <- scrapeResult{
+			*scrapes <- ScrapeResult{
 				Name:  fmt.Sprintf("config_%s", strKey),
 				Value: val,
 			}
@@ -47,7 +49,9 @@ func extractConfigMetrics(config []interface{}, scrapes *chan scrapeResult) erro
 	return nil
 }
 
-func extractInfoMetrics(info string, scrapes *chan scrapeResult) error {
+func extractInfoMetrics(info string, scrapes *chan ScrapeResult) error {
+	log.Debug("Extracting info information")
+
 	lines := strings.Split(info, "\r\n")
 	for _, l := range lines {
 		name, value, err := extractVal(l, ":")
@@ -55,7 +59,7 @@ func extractInfoMetrics(info string, scrapes *chan scrapeResult) error {
 			log.Debugf("Could not parse: %v", err)
 			continue
 		}
-		*scrapes <- scrapeResult{Name: name, Value: value}
+		*scrapes <- ScrapeResult{Name: name, Value: value}
 	}
 	return nil
 }
