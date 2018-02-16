@@ -38,8 +38,7 @@ func NewAgent() (*Agent, error) {
 
 	_, redisPort := utils.GetHostPort(redisAddr)
 
-	grpcPort := fmt.Sprintf(":%d", pkg.GRPCPortWindow+redisPort)
-	executorServer, err := NewExecutor(grpcPort, managerAddr, client)
+	executorServer, err := NewExecutor(managerAddr, client)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +48,6 @@ func NewAgent() (*Agent, error) {
 		"module":      "agent",
 		"redisAddr":   redisAddr,
 		"managerAddr": managerAddr,
-		"agentAddr":   grpcPort,
 	})
 	if err != nil {
 		return nil, err
@@ -65,14 +63,13 @@ func NewAgent() (*Agent, error) {
 // Run the agent main functionality
 func (a *Agent) Run() error {
 	/*
-			* Start the agent service
-			*
-			* Features:
-			* - Monitor redis metrics
-			* - Report cluster changes to the manager
-		    * - Run the reconciliation loop to maintain instance state
-			*
-	*/
+	* Start the agent service
+	*
+	* Tasks:
+	* - Initialize Redis connection
+	* - Start the http debug server and metrics endpoint
+	* - Start the executor responsible for ensuring instance state
+	 */
 	var errChan = make(chan error, 1)
 
 	go func(errChan chan error) {
@@ -81,7 +78,7 @@ func (a *Agent) Run() error {
 	}(errChan)
 
 	go func(errChan chan error) {
-		log.Infof("Starting executor on %s", a.executor.GetListenAddr())
+		log.Info("Starting executor")
 		errChan <- a.executor.Run()
 	}(errChan)
 
@@ -90,15 +87,26 @@ func (a *Agent) Run() error {
 
 // Exit func
 func (a *Agent) Exit() error {
+	var errs []error
+
 	err := a.httpServer.Shutdown()
 	if err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	err = a.executor.Shutdown()
 	if err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
-	return a.client.Shutdown()
+	err = a.client.Shutdown()
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("Shutdown issues: %v", errs)
+	}
+
+	return nil
 }

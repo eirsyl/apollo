@@ -83,39 +83,39 @@ services:
       network_mode: host
     agent0:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6000
+      command: agent --redis=127.0.0.1:6000 --managerTLS=false
       network_mode: host
     agent1:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6001
+      command: agent --redis=127.0.0.1:6001 --managerTLS=false
       network_mode: host
     agent2:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6002
+      command: agent --redis=127.0.0.1:6002 --managerTLS=false
       network_mode: host
     agent3:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6003
+      command: agent --redis=127.0.0.1:6003 --managerTLS=false
       network_mode: host
     agent4:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6004
+      command: agent --redis=127.0.0.1:6004 --managerTLS=false
       network_mode: host
     agent5:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6005
+      command: agent --redis=127.0.0.1:6005 --managerTLS=false
       network_mode: host
     agent6:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6006
+      command: agent --redis=127.0.0.1:6006 --managerTLS=false
       network_mode: host
     agent7:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6007
+      command: agent --redis=127.0.0.1:6007 --managerTLS=false
       network_mode: host
     agent8:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6008
+      command: agent --redis=127.0.0.1:6008 --managerTLS=false
       network_mode: host
     prometheus:
         image: prom/prometheus

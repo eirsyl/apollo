@@ -31,4 +31,11 @@ Apollo is a Redis Cluster manager that aims to lighten the operational burden
 on cluster operators. The cluster manager watches the Redis cluster for possible
 issues or reduced performance and tries to fix these in the best possible way.
 `,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if viper.GetBool("debug") {
+			log.SetLevel(log.DebugLevel)
+		} else {
+			log.SetLevel(log.InfoLevel)
+		}
+	},
 }

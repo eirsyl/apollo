@@ -1,8 +1,11 @@
 package redis
 
 import (
+	"fmt"
 	goRedis "github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
+	"strings"
+	"sync"
 )
 
 // Client exposes a set of methods used to interact with redis.
@@ -10,8 +13,9 @@ type Client struct {
 	redis *goRedis.Client
 }
 
-// InstanceHealth contains health information about the redis instance.
-type InstanceHealth struct {
+// InstanceState contains state information about the redis instance.
+type InstanceState struct {
+	Up bool
 }
 
 // NewClient returns a new redis client that can be used to interact
@@ -26,15 +30,74 @@ func NewClient(addr string) (*Client, error) {
 	}, nil
 }
 
-// Health returns the instance health.
-func (c *Client) Health() (InstanceHealth, error) {
-	return InstanceHealth{}, nil
-}
-
 // RunPreflightTests runs a set of preflight tests to make sure the
-// instance is compatible with apollo
+// instance is compatible with apollo.
+// Checks:
+// - Cluster mode enabled
 func (c *Client) RunPreflightTests() error {
 	log.Infof("Running preflight tests on %v", c.redis)
+
+	var (
+		scrapes = make(chan scrapeResult)
+		wg      sync.WaitGroup
+		details []string
+	)
+	wg.Add(2)
+
+	go func() {
+		requirements := map[string]float64{
+			"cluster_enabled": 1,
+		}
+
+		for scrape := range scrapes {
+			if val, ok := requirements[scrape.Name]; ok && val != scrape.Value {
+				details = append(details, fmt.Sprintf("%s: invalid value", scrape.Name))
+			}
+		}
+
+		wg.Done()
+	}()
+
+	err := c.collectInfo(&scrapes)
+	close(scrapes)
+	wg.Done()
+	if err != nil {
+		return err
+	}
+
+	wg.Wait()
+	if len(details) > 0 {
+		return NewErrInstanceIncompatible(details)
+	}
+
+	return nil
+}
+
+/*
+ * Private functions
+ */
+
+func (c *Client) collectInfo(scrapes *chan scrapeResult) error {
+	config, err := c.redis.ConfigGet("*").Result()
+	if err != nil {
+		return err
+	}
+	_ = extractConfigMetrics(config, scrapes)
+
+	info, err := c.redis.Info("ALL").Result()
+	if err != nil {
+		return err
+	}
+	_ = extractInfoMetrics(info, scrapes)
+
+	if strings.Contains("info", "cluster_enabled:1") {
+		info, err = c.redis.ClusterInfo().Result()
+		if err != nil {
+			return err
+		}
+		_ = extractInfoMetrics(info, scrapes)
+	}
+
 	return nil
 }
 
