@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"context"
 	"errors"
 	"time"
 
@@ -9,7 +8,6 @@ import (
 
 	bolt "github.com/coreos/bbolt"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // Manager exports the manager struct used to operate an manager.
@@ -22,21 +20,22 @@ type Manager struct {
 }
 
 // NewManager initializes a new manager instance and returns a pinter to it.
-func NewManager() (*Manager, error) {
-	db, err := bolt.Open("my.db", 0600, &bolt.Options{Timeout: 5 * time.Second})
-	if err != nil {
-		log.Warnf("Could not open DB: %v", err)
-		return nil, err
-	}
-
-	managerAddr := viper.GetString("managerAddr")
+func NewManager(managerAddr, httpAddr, databaseFile string) (*Manager, error) {
 	if managerAddr == "" {
 		return nil, errors.New("The manager address cannot be empty")
 	}
 
-	httpAddr := viper.GetString("debugAddr")
 	if httpAddr == "" {
 		return nil, errors.New("The debug address cannot be empty")
+	}
+
+	if databaseFile == "" {
+		return nil, errors.New("The database path cannot be empty")
+	}
+
+	db, err := bolt.Open(databaseFile, 0600, &bolt.Options{Timeout: 5 * time.Second})
+	if err != nil {
+		return nil, err
 	}
 
 	return &Manager{
@@ -72,8 +71,8 @@ func (m *Manager) Run() error {
 
 		m.httpServer = httpServer
 
-		log.Infof("Starting http server on %s", m.httpServer.SRV.Addr)
-		errChan <- m.httpServer.SRV.ListenAndServe()
+		log.Infof("Starting http server on %s", httpServer.GetListenAddr())
+		errChan <- httpServer.Run()
 	}(errChan)
 
 	// Start orchestrator server
@@ -89,17 +88,13 @@ func (m *Manager) Run() error {
 		errChan <- m.orchestrator.Run()
 	}(errChan)
 
-	err := <-errChan
-	if err == nil {
-		return errors.New("The http server or orchestrator server stopped unexpectedly")
-	}
-	return err
+	return <-errChan
 }
 
 // Exit gracefully shuts down the manager
 func (m *Manager) Exit() error {
 	log.Info("Closing http server")
-	err := m.httpServer.SRV.Shutdown(context.Background())
+	err := m.httpServer.Shutdown()
 	if err != nil {
 		log.Warnf("Could not gracefully stop the http server: %v", err)
 

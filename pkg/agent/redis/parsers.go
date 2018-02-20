@@ -56,10 +56,57 @@ func extractInfoMetrics(info string, scrapes *chan ScrapeResult) error {
 	for _, l := range lines {
 		name, value, err := extractVal(l, ":")
 		if err != nil {
+			// Try to parse the keyspace value
+			split := strings.Split(l, ":")
+			if len(split) == 2 {
+				if keysTotal, keysEx, avgTTL, ok := parseDBKeyspaceString(split[0], split[1]); ok {
+					*scrapes <- ScrapeResult{Name: "db_keys", Value: keysTotal}
+					*scrapes <- ScrapeResult{Name: "db_keys_expiring", Value: keysEx}
+					if avgTTL > -1 {
+						*scrapes <- ScrapeResult{Name: "db_avg_ttl_seconds", Value: avgTTL}
+					}
+					continue
+				}
+			}
+
 			log.Debugf("Could not parse: %v", err)
 			continue
 		}
 		*scrapes <- ScrapeResult{Name: name, Value: value}
 	}
 	return nil
+}
+
+func parseDBKeyspaceString(db string, stats string) (keysTotal float64, keysExpiringTotal float64, avgTTL float64, ok bool) {
+	ok = false
+	if !strings.HasPrefix(db, "db") {
+		return
+	}
+
+	split := strings.Split(stats, ",")
+	if len(split) != 3 {
+		return
+	}
+
+	var err error
+	ok = true
+	if _, keysTotal, err = extractVal(split[0], "="); err != nil {
+		ok = false
+		return
+	}
+	if _, keysExpiringTotal, err = extractVal(split[1], "="); err != nil {
+		ok = false
+		return
+	}
+
+	avgTTL = -1
+	if len(split) > 2 {
+		if _, avgTTL, err = extractVal(split[2], "="); err != nil {
+			ok = false
+			return
+		}
+		avgTTL /= 1000
+	}
+
+	return
 }

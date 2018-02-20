@@ -12,6 +12,8 @@ services:
             - '6000'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     redis1:
         image: redis
@@ -20,6 +22,8 @@ services:
             - '6001'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     redis2:
         image: redis
@@ -28,6 +32,8 @@ services:
             - '6002'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     redis3:
         image: redis
@@ -36,6 +42,8 @@ services:
             - '6003'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     redis4:
         image: redis
@@ -44,6 +52,8 @@ services:
             - '6004'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     redis5:
         image: redis
@@ -52,6 +62,8 @@ services:
             - '6005'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     redis6:
         image: redis
@@ -60,6 +72,8 @@ services:
             - '6006'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     redis7:
         image: redis
@@ -68,6 +82,8 @@ services:
             - '6007'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     redis8:
         image: redis
@@ -76,6 +92,8 @@ services:
             - '6008'
             - --cluster-enabled
             - 'yes'
+            - --maxmemory
+            - 100mb
         network_mode: host
     manager:
       image: eirsyl/apollo:latest

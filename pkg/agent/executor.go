@@ -2,6 +2,9 @@ package agent
 
 import (
 	"github.com/eirsyl/apollo/pkg/agent/redis"
+	"github.com/prometheus/client_golang/prometheus"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Executor implements an GRPC server and a reconciliation loop
@@ -13,8 +16,8 @@ type Executor struct {
 }
 
 // NewExecutor creates a new Executor instance
-func NewExecutor(managerAddr string, redis *redis.Client) (*Executor, error) {
-	loop, err := NewReconciliationLoop(redis, managerAddr)
+func NewExecutor(managerAddr string, redis *redis.Client, skipPrechecks bool) (*Executor, error) {
+	loop, err := NewReconciliationLoop(redis, managerAddr, skipPrechecks)
 	if err != nil {
 		return nil, err
 	}
@@ -31,6 +34,14 @@ func NewExecutor(managerAddr string, redis *redis.Client) (*Executor, error) {
 // Run starts the executor instance
 func (e *Executor) Run() error {
 	var errChan = make(chan error, 1)
+
+	// Register prometheus metrics
+	log.Info("Registering prometheus exporter")
+	exporter, err := NewExporter(e.redis.GetAddr(), e.loop.Metrics)
+	if err != nil {
+		return err
+	}
+	prometheus.MustRegister(exporter)
 
 	go func() {
 		errChan <- e.loop.Run()

@@ -30,6 +30,11 @@ func NewClient(addr string) (*Client, error) {
 	}, nil
 }
 
+// GetAddr returns the redis listen address
+func (c *Client) GetAddr() string {
+	return c.redis.Options().Addr
+}
+
 // RunPreflightTests runs a set of preflight tests to make sure the
 // instance is compatible with apollo.
 // Checks:

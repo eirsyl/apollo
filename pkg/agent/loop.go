@@ -18,10 +18,12 @@ type ReconciliationLoop struct {
 	listener      *grpc.ClientConn
 	done          chan bool
 	scrapeResults chan redis.ScrapeResult
+	Metrics       *Metrics
+	skipPrechecks bool
 }
 
 // NewReconciliationLoop creates a new loop and returns the instance
-func NewReconciliationLoop(r *redis.Client, managerAddr string) (*ReconciliationLoop, error) {
+func NewReconciliationLoop(r *redis.Client, managerAddr string, skipPrechecks bool) (*ReconciliationLoop, error) {
 	var opts []grpc.DialOption
 	useTLS := viper.GetBool("managerTLS")
 
@@ -36,12 +38,19 @@ func NewReconciliationLoop(r *redis.Client, managerAddr string) (*Reconciliation
 
 	client := pb.NewManagerClient(conn)
 
+	m, err := NewMetrics()
+	if err != nil {
+		return nil, err
+	}
+
 	return &ReconciliationLoop{
 		redis:         r,
 		client:        client,
 		listener:      conn,
 		done:          make(chan bool),
 		scrapeResults: make(chan redis.ScrapeResult),
+		Metrics:       m,
+		skipPrechecks: skipPrechecks,
 	}, nil
 }
 
@@ -61,7 +70,9 @@ func (r *ReconciliationLoop) Run() error {
 	var precheckDone = make(chan bool)
 
 	go func() {
-		r.prechecks()
+		if !r.skipPrechecks {
+			r.prechecks()
+		}
 		precheckDone <- true
 	}()
 
@@ -82,7 +93,7 @@ func (r *ReconciliationLoop) Run() error {
 			select {
 			case <-r.done:
 				return
-			case <-time.After(2 * time.Second):
+			case <-time.After(10 * time.Second):
 				err := r.iteration()
 				if err != nil {
 					log.Warnf("ReconciliationLoop iteration error: %v", err)
@@ -136,7 +147,7 @@ func (r *ReconciliationLoop) collectScrape() {
 	log.Info("Collecting scrape metrics")
 	for {
 		scrapeResult := <-r.scrapeResults
-		log.Info(scrapeResult)
+		r.Metrics.RegisterMetric(scrapeResult)
 	}
 }
 

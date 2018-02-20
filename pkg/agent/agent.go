@@ -20,7 +20,7 @@ type Agent struct {
 }
 
 // NewAgent initializes a new agent and returns a pointer to the instance
-func NewAgent() (*Agent, error) {
+func NewAgent(skipPrechecks bool) (*Agent, error) {
 	redisAddr := viper.GetString("redis")
 	if redisAddr == "" {
 		return nil, errors.New("The redis address cannot be empty")
@@ -38,7 +38,7 @@ func NewAgent() (*Agent, error) {
 
 	_, redisPort := utils.GetHostPort(redisAddr)
 
-	executorServer, err := NewExecutor(managerAddr, client)
+	executorServer, err := NewExecutor(managerAddr, client, skipPrechecks)
 	if err != nil {
 		return nil, err
 	}

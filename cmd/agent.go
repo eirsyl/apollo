@@ -12,12 +12,14 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 func init() {
 	stringConfig(agentCmd, "redis", "r", "127.0.0.1:6379", "redis instance that the agent should manage")
 	stringConfig(agentCmd, "manager", "m", "127.0.0.1:8080", "manager instance that the agent should report to")
 	boolConfig(agentCmd, "managerTLS", "", true, "use tls when connecting to the manager")
+	boolConfig(agentCmd, "skip-prechecks", "", false, "skip prechecks at startup")
 	RootCmd.AddCommand(agentCmd)
 }
 
@@ -34,7 +36,8 @@ var agentCmd = &cobra.Command{
 		signal.Notify(exitSig, syscall.SIGINT, os.Interrupt, syscall.SIGTERM)
 
 		var err error
-		instanceAgent, err := agent.NewAgent()
+		skipPrechecks := viper.GetBool("skip-prechecks")
+		instanceAgent, err := agent.NewAgent(skipPrechecks)
 		if err != nil {
 			log.Fatalf("Could not initialize agent instance: %v", err)
 		}

@@ -6,3 +6,5 @@ apollo
 /vendor/
 /test/tests.*
 /test/coverage.*
+
+apollo.db
