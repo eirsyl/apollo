@@ -4,22 +4,22 @@ import (
 	"fmt"
 )
 
-// ErrInstanceIncompatible error is returned by the prechecks if the instance
+// ErrNodeIncompatible error is returned by the prechecks if the node
 // isn't ready for apollo
-type ErrInstanceIncompatible struct {
+type ErrNodeIncompatible struct {
 	details []string
 }
 
-// NewErrInstanceIncompatible returns a new incompatible error
-func NewErrInstanceIncompatible(details []string) *ErrInstanceIncompatible {
-	return &ErrInstanceIncompatible{details: details}
+// NewErrNodeIncompatible returns a new incompatible error
+func NewErrNodeIncompatible(details []string) *ErrNodeIncompatible {
+	return &ErrNodeIncompatible{details: details}
 }
 
-func (e *ErrInstanceIncompatible) Error() string {
-	return fmt.Sprintf("Instance incompatible: %v", e.details)
+func (e *ErrNodeIncompatible) Error() string {
+	return fmt.Sprintf("Node incompatible: %v", e.details)
 }
 
-// ScrapeResult contains instance information collected from the redis instance
+// ScrapeResult contains node information collected from the redis instance
 type ScrapeResult struct {
 	Name  string
 	Value float64

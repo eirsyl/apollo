@@ -1,17 +1,18 @@
 package agent
 
 import (
-	"github.com/eirsyl/apollo/pkg/agent/redis"
 	"sync"
+
+	"github.com/eirsyl/apollo/pkg/agent/redis"
 )
 
-// Metrics stores the collected state of the redis instance
+// Metrics stores the collected state of the redis node
 type Metrics struct {
 	registry map[string]float64
 	lock     sync.Mutex
 }
 
-// NewMetrics returns a new instance of the metric instance
+// NewMetrics returns a new instance of the metric struct
 func NewMetrics() (*Metrics, error) {
 	m := Metrics{
 		registry: map[string]float64{},

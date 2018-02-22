@@ -2,14 +2,14 @@
 
 # TODO:
 
-- [ ] Lookup instance name from `cluster nodes`
+- [ ] Lookup node name from `cluster nodes`
 - [ ] Make usage of the collected information from the info commands
 - [ ] Manager should store the cluster topology
 
 # System properties
 
-* Instance monitoring
+* Node monitoring
 * Cluster planner
 * Rebalancing
-* Instance management
+* Node management
 * Administrative interface

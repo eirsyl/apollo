@@ -59,6 +59,9 @@ $(BIN)/go2xunit: | $(BASE) ; $(info $(M) building go2xunit…)
 	$Q go get github.com/tebeka/go2xunit
 
 PROTOC = $(shell which protoc)
+PROTOGENGO = $(BIN)/protoc-gen-go
+$(BIN)/protoc-gen-go: | $(BASE) ; $(info $(M) building proto-gen-go…)
+	$Q go get github.com/golang/protobuf/protoc-gen-go
 
 # Tests
 
@@ -116,7 +119,7 @@ vendor: Gopkg.lock | $(BASE) $(DEP) ; $(info $(M) retrieving dependencies…)
 
 # GRPC
 
-gen-proto: pkg/proto | $(BASE) $(PROTOC) ; $(info $(M) generating protocol buffers…)
+gen-proto: pkg/proto | $(BASE) $(PROTOC) $(PROTOGENGO) ; $(info $(M) generating protocol buffers…)
 	$Q cd $(BASE) && $(PROTOC) -I pkg/proto pkg/proto/* --go_out=plugins=grpc:pkg/api
 
 # Docker

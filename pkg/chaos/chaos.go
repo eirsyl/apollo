@@ -4,7 +4,7 @@ package chaos
 type Chaos struct {
 }
 
-// NewChaos initializes a new chaos instance and returns a pinter to it.
+// NewChaos initializes a new chaos instance and returns a pointer to it.
 func NewChaos() (*Chaos, error) {
 	return &Chaos{}, nil
 }

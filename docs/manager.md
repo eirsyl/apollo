@@ -1,7 +1,7 @@
 # Manager
 
 The manager is responsible for managing cluster operations by executing commands
-in the cluster trough the agent instances.
+in the cluster trough the agent nodes.
 
 The manager consists of internal orchestration logic and two servers, one for grpc
 communication and one for debugging, monitoring and API access.

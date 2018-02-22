@@ -2,10 +2,11 @@ package redis
 
 import (
 	"fmt"
-	goRedis "github.com/go-redis/redis"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
+
+	goRedis "github.com/go-redis/redis"
+	log "github.com/sirupsen/logrus"
 )
 
 // Client exposes a set of methods used to interact with redis.
@@ -13,13 +14,13 @@ type Client struct {
 	redis *goRedis.Client
 }
 
-// InstanceState contains state information about the redis instance.
-type InstanceState struct {
+// NodeState contains state information about the redis node.
+type NodeState struct {
 	Up bool
 }
 
 // NewClient returns a new redis client that can be used to interact
-// with the redis instance.
+// with the redis node.
 func NewClient(addr string) (*Client, error) {
 	redis := goRedis.NewClient(&goRedis.Options{
 		Addr: addr,
@@ -36,7 +37,7 @@ func (c *Client) GetAddr() string {
 }
 
 // RunPreflightTests runs a set of preflight tests to make sure the
-// instance is compatible with apollo.
+// node is compatible with apollo.
 // Checks:
 // - Cluster mode enabled
 func (c *Client) RunPreflightTests() error {
@@ -70,13 +71,13 @@ func (c *Client) RunPreflightTests() error {
 
 	wg.Wait()
 	if len(details) > 0 {
-		return NewErrInstanceIncompatible(details)
+		return NewErrNodeIncompatible(details)
 	}
 
 	return nil
 }
 
-// ScrapeInformation returns collected info from the redis instance
+// ScrapeInformation returns collected info from the redis node
 // the information is sent into the given channel
 func (c *Client) ScrapeInformation(scrapes *chan ScrapeResult) error {
 	return c.collectInfo(scrapes)

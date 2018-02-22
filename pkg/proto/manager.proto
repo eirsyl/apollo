@@ -7,7 +7,7 @@ service Manager {
 }
 
 message HealthRequest {
-    string instanceId = 1;
+    string nodeId = 1;
     bool ready = 2;
     string detail = 3;
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // Executor implements an GRPC server and a reconciliation loop
-// that it used for detecting problems with the redis instance.
+// that it used for detecting problems with the redis node.
 type Executor struct {
 	redis       *redis.Client
 	managerAddr string

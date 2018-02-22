@@ -68,7 +68,7 @@ func (a *Agent) Run() error {
 	* Tasks:
 	* - Initialize Redis connection
 	* - Start the http debug server and metrics endpoint
-	* - Start the executor responsible for ensuring instance state
+	* - Start the executor responsible for ensuring node state
 	 */
 	var errChan = make(chan error, 1)
 

@@ -2,16 +2,18 @@ package agent
 
 import (
 	"context"
+	"time"
+
 	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/agent/redis"
 	pb "github.com/eirsyl/apollo/pkg/api"
+	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
-	"time"
 )
 
-// ReconciliationLoop is responsible for ensuring redis instance state
+// ReconciliationLoop is responsible for ensuring redis node state
 type ReconciliationLoop struct {
 	redis         *redis.Client
 	client        pb.ManagerClient
@@ -24,7 +26,10 @@ type ReconciliationLoop struct {
 
 // NewReconciliationLoop creates a new loop and returns the instance
 func NewReconciliationLoop(r *redis.Client, managerAddr string, skipPrechecks bool) (*ReconciliationLoop, error) {
-	var opts []grpc.DialOption
+	var opts = []grpc.DialOption{
+		grpc.WithUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor),
+		grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
+	}
 	useTLS := viper.GetBool("managerTLS")
 
 	if !useTLS {
@@ -57,9 +62,9 @@ func NewReconciliationLoop(r *redis.Client, managerAddr string, skipPrechecks bo
 // Run starts the loop
 func (r *ReconciliationLoop) Run() error {
 	/*
-	* Ensure instance state
+	* Ensure node state
 	*
-	* - Run prechecks to make sure the redis instance is configured in cluster mode.
+	* - Run prechecks to make sure the redis node is configured in cluster mode.
 	* - Record cluster state
 	* - Report state to manager
 	* - Ask for optimal state
@@ -109,7 +114,7 @@ func (r *ReconciliationLoop) prechecks() {
 	for {
 		err := r.redis.RunPreflightTests()
 		if err != nil {
-			if err == err.(*redis.ErrInstanceIncompatible) {
+			if err == err.(*redis.ErrNodeIncompatible) {
 				log.Fatal(err)
 			}
 		} else {
@@ -121,18 +126,18 @@ func (r *ReconciliationLoop) prechecks() {
 
 func (r *ReconciliationLoop) iteration() error {
 	log.Debug("Starting new iteration")
-	// Scrape instance information
+	// Scrape node information
 	err := r.redis.ScrapeInformation(&r.scrapeResults)
 	if err != nil {
-		log.Warnf("Could not scrape instance information: %v", err)
+		log.Warnf("Could not scrape node information: %v", err)
 	} else {
-		log.Debug("Instance scrape success")
+		log.Debug("Node scrape success")
 	}
 
 	status := pb.HealthRequest{
-		InstanceId: "localhost",
-		Ready:      false,
-		Detail:     "prechecks failed",
+		NodeId: "localhost",
+		Ready:  false,
+		Detail: "prechecks failed",
 	}
 	res, err := r.client.AgentHealth(context.Background(), &status)
 	if err != nil {
