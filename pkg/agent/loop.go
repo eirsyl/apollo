@@ -134,6 +134,12 @@ func (r *ReconciliationLoop) iteration() error {
 		log.Debug("Node scrape success")
 	}
 
+	isEmpty, _ := r.redis.IsEmpty()
+	log.Warnf("REDIS EMPTY: %v", isEmpty)
+
+	nodes, _ := r.redis.ClusterNodes()
+	log.Warn("Cluster nodes: %v", nodes)
+
 	status := pb.HealthRequest{
 		NodeId: "localhost",
 		Ready:  false,

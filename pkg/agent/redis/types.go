@@ -24,3 +24,18 @@ type ScrapeResult struct {
 	Name  string
 	Value float64
 }
+
+// ClusterNode stores the information about each node retrieved from the "cluster nodes" command
+type ClusterNode struct {
+	NodeID      string
+	Addr        string
+	Flags       string
+	Role        string
+	Myself      bool
+	MasterID    string
+	PingSent    int
+	PingRecv    int
+	ConfigEpoch int
+	LinkStatus  string
+	Slots       []string
+}

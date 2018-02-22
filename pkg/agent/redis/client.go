@@ -5,6 +5,8 @@ import (
 	"strings"
 	"sync"
 
+	"strconv"
+
 	goRedis "github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 )
@@ -81,6 +83,95 @@ func (c *Client) RunPreflightTests() error {
 // the information is sent into the given channel
 func (c *Client) ScrapeInformation(scrapes *chan ScrapeResult) error {
 	return c.collectInfo(scrapes)
+}
+
+// IsEmpty check if the node is empty or attached to an existing cluster
+// The node is empty if no database exists and the instance is'nt aware of other cluster members
+func (c *Client) IsEmpty() (bool, error) {
+	// info keyspace !contains db0 && cluster info contains cluster_known_nodes:1
+	ik, err := c.redis.Info("keyspace").Result()
+	if err != nil {
+		return false, err
+	}
+
+	if strings.Contains(ik, "db0") {
+		return false, nil
+	}
+
+	cm, err := c.redis.ClusterInfo().Result()
+	if err != nil {
+		return false, err
+	}
+
+	if !strings.Contains(cm, "cluster_known_nodes:1") {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// ClusterNodes fetches the cluster topology known by the node.
+func (c *Client) ClusterNodes() ([]ClusterNode, error) {
+	var nodes []ClusterNode
+
+	nodeInfo, err := c.redis.ClusterNodes().Result()
+	if err != nil {
+		return []ClusterNode{}, err
+	}
+
+	for _, l := range strings.Split(nodeInfo, "\n") {
+		args := strings.Split(l, " ")
+		if len(args) == 1 {
+			continue
+		} else if len(args) < 8 {
+			log.Warn("Cluster node information retrieved from redis is invalid: %v", args)
+			continue
+		}
+
+		flags := args[2]
+		role := "slave"
+		if strings.Contains(flags, "master") && args[3] == "-" {
+			role = "master"
+		}
+
+		pingRecv, err := strconv.Atoi(args[4])
+		if err != nil {
+			log.Warn("Could not parse PingRecv: %v", args[4])
+		}
+
+		pingSent, err := strconv.Atoi(args[5])
+		if err != nil {
+			log.Warn("Could not parse PingSent: %v", args[5])
+		}
+
+		configEpoch, err := strconv.Atoi(args[6])
+		if err != nil {
+			log.Warn("Could not parse ConfigEpoch: %v", args[6])
+		}
+
+		var slots []string
+		if len(args) > 8 {
+			slots = args[8:]
+		}
+
+		node := ClusterNode{
+			NodeID:      args[0],
+			Addr:        args[1],
+			Flags:       flags,
+			Role:        role,
+			Myself:      strings.Contains(flags, "myself"),
+			MasterID:    args[3],
+			PingRecv:    pingRecv,
+			PingSent:    pingSent,
+			ConfigEpoch: configEpoch,
+			LinkStatus:  args[7],
+			Slots:       slots,
+		}
+
+		nodes = append(nodes, node)
+	}
+
+	return nodes, nil
 }
 
 /*
