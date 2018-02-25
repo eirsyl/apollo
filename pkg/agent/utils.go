@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/agent/redis"
 	pb "github.com/eirsyl/apollo/pkg/api"
 )
@@ -41,4 +42,16 @@ func transformHostAnnotations(hostAnnotations *map[string]string) *[]*pb.HostAnn
 	}
 
 	return &tAnnotations
+}
+
+func transformMetrics(metrics *chan Metric) *[]*pb.NodeMetric {
+	var result []*pb.NodeMetric
+
+	for metric := range *metrics {
+		if pkg.AgentMetrics[metric.Name] {
+			result = append(result, &pb.NodeMetric{Name: metric.Name, Value: metric.Value})
+		}
+	}
+
+	return &result
 }

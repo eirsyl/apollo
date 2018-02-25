@@ -7,3 +7,8 @@ const (
 	// AddSlotsCommand is used to assign slots to a node
 	AddSlotsCommand NodeCommand = 1
 )
+
+type NodeCommandArguments interface {
+	SetArgument() error
+	GetArguments() map[string]string
+}

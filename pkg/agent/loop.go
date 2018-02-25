@@ -136,13 +136,16 @@ func (r *ReconciliationLoop) iteration() error {
 		log.Debug("Node scrape success")
 	}
 
+	var metricsChan = make(chan Metric, 1)
 	isEmpty, _ := r.redis.IsEmpty()
 	nodes, _ := r.redis.ClusterNodes()
+	go r.Metrics.ExportMetrics(&metricsChan)
 
 	state := pb.StateRequest{
 		IsEmpty:         isEmpty,
 		Nodes:           *transformNodes(&nodes),
 		HostAnnotations: *transformHostAnnotations(&r.hostAnnotations),
+		Metrics:         *transformMetrics(&metricsChan),
 	}
 
 	res, err := r.client.ReportState(context.Background(), &state)

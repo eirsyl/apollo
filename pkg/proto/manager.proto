@@ -10,6 +10,7 @@ message StateRequest {
     bool isEmpty = 1;
     repeated ClusterNode nodes = 2;
     repeated HostAnnotation hostAnnotations = 3;
+    repeated NodeMetric metrics = 4;
 }
 
 message StateResponse {
@@ -36,4 +37,9 @@ message ClusterNode {
 message HostAnnotation {
     string name = 1;
     string value = 2;
+}
+
+message NodeMetric {
+    string name = 1;
+    double value = 2;
 }

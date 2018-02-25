@@ -13,6 +13,7 @@ It has these top-level messages:
 	StateResponse
 	ClusterNode
 	HostAnnotation
+	NodeMetric
 */
 package api
 
