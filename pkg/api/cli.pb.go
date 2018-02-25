@@ -11,9 +11,15 @@ It is generated from these files:
 It has these top-level messages:
 	StateRequest
 	StateResponse
+	NextExecutionRequest
+	NextExecutionResponse
+	ReportExecutionRequest
+	ReportExecutionResponse
 	ClusterNode
 	HostAnnotation
 	NodeMetric
+	ExecutionCommand
+	ExecutionResult
 */
 package api
 

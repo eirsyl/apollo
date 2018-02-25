@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"errors"
+
 	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/agent/redis"
 	pb "github.com/eirsyl/apollo/pkg/api"
@@ -136,6 +138,12 @@ func (r *ReconciliationLoop) iteration() error {
 		log.Debug("Node scrape success")
 	}
 
+	return r.reportInstanceState()
+}
+
+// reportInstanceState collects the instance state and tries to send the state to the manager
+// Failed requests is retried for a fixed amount of time
+func (r *ReconciliationLoop) reportInstanceState() error {
 	var metricsChan = make(chan Metric, 1)
 	isEmpty, _ := r.redis.IsEmpty()
 	nodes, _ := r.redis.ClusterNodes()
@@ -148,13 +156,34 @@ func (r *ReconciliationLoop) iteration() error {
 		Metrics:         *transformMetrics(&metricsChan),
 	}
 
-	res, err := r.client.ReportState(context.Background(), &state)
-	if err != nil {
-		log.Warnf("Could not send: %v", err)
-	} else {
-		log.Infof("Red: %v", res)
+	var resultChan = make(chan error, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				_, err := r.client.ReportState(context.Background(), &state)
+				if err != nil {
+					log.Warnf("Could not report instance state: %v", err)
+				} else {
+					resultChan <- err
+					return
+				}
+				time.Sleep(2 * time.Second)
+			}
+		}
+	}()
+
+	select {
+	case <-time.After(10 * time.Second):
+		return errors.New("could not push instance state, loop continues")
+	case err := <-resultChan:
+		return err
 	}
-	return nil
 }
 
 func (r *ReconciliationLoop) collectScrape() {
