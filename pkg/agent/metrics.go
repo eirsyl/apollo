@@ -12,6 +12,12 @@ type Metrics struct {
 	lock     sync.Mutex
 }
 
+// Metric returns a metric, used by a channel when exporting metrics
+type Metric struct {
+	Name  string
+	Value float64
+}
+
 // NewMetrics returns a new instance of the metric struct
 func NewMetrics() (*Metrics, error) {
 	m := Metrics{
@@ -29,9 +35,17 @@ func (m *Metrics) RegisterMetric(scrape redis.ScrapeResult) {
 }
 
 // ExportMetrics returns a map of all metrics stored in the registry
-func (m *Metrics) ExportMetrics() map[string]float64 {
+func (m *Metrics) ExportMetrics(exportChan *chan Metric) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	return m.registry
+	for name, value := range m.registry {
+		m := Metric{
+			Name:  name,
+			Value: value,
+		}
+		*exportChan <- m
+	}
+
+	close(*exportChan)
 }

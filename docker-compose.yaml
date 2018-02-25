@@ -101,7 +101,7 @@ services:
       network_mode: host
     agent0:
       image: eirsyl/apollo:latest
-      command: agent --redis=127.0.0.1:6000 --managerTLS=false
+      command: agent --redis=127.0.0.1:6000 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack01"
       network_mode: host
     agent1:
       image: eirsyl/apollo:latest

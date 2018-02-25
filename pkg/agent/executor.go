@@ -16,8 +16,8 @@ type Executor struct {
 }
 
 // NewExecutor creates a new Executor instance
-func NewExecutor(managerAddr string, redis *redis.Client, skipPrechecks bool) (*Executor, error) {
-	loop, err := NewReconciliationLoop(redis, managerAddr, skipPrechecks)
+func NewExecutor(managerAddr string, redis *redis.Client, skipPrechecks bool, hostAnnotations map[string]string) (*Executor, error) {
+	loop, err := NewReconciliationLoop(redis, managerAddr, skipPrechecks, hostAnnotations)
 	if err != nil {
 		return nil, err
 	}

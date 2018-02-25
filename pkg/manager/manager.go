@@ -2,6 +2,7 @@ package manager
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator"
@@ -17,10 +18,11 @@ type Manager struct {
 	httpServer   *HTTPServer
 	orchestrator *orchestrator.Server
 	db           *bolt.DB
+	replication  int
 }
 
 // NewManager initializes a new manager instance and returns a pinter to it.
-func NewManager(managerAddr, httpAddr, databaseFile string) (*Manager, error) {
+func NewManager(managerAddr, httpAddr, databaseFile string, replicationFactor int) (*Manager, error) {
 	if managerAddr == "" {
 		return nil, errors.New("The manager address cannot be empty")
 	}
@@ -38,10 +40,15 @@ func NewManager(managerAddr, httpAddr, databaseFile string) (*Manager, error) {
 		return nil, err
 	}
 
+	if !(replicationFactor > 0) {
+		return nil, errors.New("The replication factor must be larger than 0")
+	}
+
 	return &Manager{
 		managerAddr: managerAddr,
 		httpAddr:    httpAddr,
 		db:          db,
+		replication: replicationFactor,
 	}, nil
 }
 
@@ -60,9 +67,10 @@ func (m *Manager) Run() error {
 	// Start the http debug server
 	go func(errChan chan error) {
 		httpServer, err := NewHTTPServer(m.httpAddr, map[string]string{
-			"module":      "manager",
-			"managerAddr": m.managerAddr,
-			"httpAddr":    m.httpAddr,
+			"module":            "manager",
+			"managerAddr":       m.managerAddr,
+			"httpAddr":          m.httpAddr,
+			"replicationFactor": fmt.Sprintf("%d", m.replication),
 		})
 		if err != nil {
 			errChan <- err
@@ -77,7 +85,7 @@ func (m *Manager) Run() error {
 
 	// Start orchestrator server
 	go func(errChan chan error) {
-		orchestratorServer, err := orchestrator.NewServer(m.managerAddr)
+		orchestratorServer, err := orchestrator.NewServer(m.managerAddr, m.replication)
 		if err != nil {
 			errChan <- err
 			return

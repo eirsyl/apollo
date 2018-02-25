@@ -20,7 +20,7 @@ type Agent struct {
 }
 
 // NewAgent initializes a new agent and returns a pointer to the instance
-func NewAgent(skipPrechecks bool) (*Agent, error) {
+func NewAgent(skipPrechecks bool, hostAnnotations map[string]string) (*Agent, error) {
 	redisAddr := viper.GetString("redis")
 	if redisAddr == "" {
 		return nil, errors.New("The redis address cannot be empty")
@@ -38,16 +38,17 @@ func NewAgent(skipPrechecks bool) (*Agent, error) {
 
 	_, redisPort := utils.GetHostPort(redisAddr)
 
-	executorServer, err := NewExecutor(managerAddr, client, skipPrechecks)
+	executorServer, err := NewExecutor(managerAddr, client, skipPrechecks, hostAnnotations)
 	if err != nil {
 		return nil, err
 	}
 
 	httpPort := fmt.Sprintf(":%d", pkg.HTTPPortWindow+redisPort)
 	httpServer, err := NewHTTPServer(httpPort, map[string]string{
-		"module":      "agent",
-		"redisAddr":   redisAddr,
-		"managerAddr": managerAddr,
+		"module":          "agent",
+		"redisAddr":       redisAddr,
+		"managerAddr":     managerAddr,
+		"hostAnnotations": fmt.Sprintf("%v", hostAnnotations),
 	})
 	if err != nil {
 		return nil, err

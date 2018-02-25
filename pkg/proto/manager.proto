@@ -3,15 +3,37 @@ syntax = "proto3";
 package api;
 
 service Manager {
-    rpc AgentHealth (HealthRequest) returns (HealthResponse) {}
+    rpc ReportState (StateRequest) returns (StateResponse) {}
 }
 
-message HealthRequest {
-    string nodeId = 1;
-    bool ready = 2;
-    string detail = 3;
+message StateRequest {
+    bool isEmpty = 1;
+    repeated ClusterNode nodes = 2;
+    repeated HostAnnotation hostAnnotations = 3;
 }
 
-message HealthResponse {
+message StateResponse {
     bool ack = 1;
+}
+
+/**
+ * TYPES
+ */
+message ClusterNode {
+    string nodeID = 1;
+    string addr = 2;
+    string flags = 3;
+    string role = 4;
+    bool myself = 5;
+    string masterID = 6;
+    int64 pingSent = 7;
+    int64 pingRecv = 8;
+    int64 configEpoch = 9;
+    string linkStatus = 10;
+    repeated string slots = 11;
+}
+
+message HostAnnotation {
+    string name = 1;
+    string value = 2;
 }

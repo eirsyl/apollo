@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 func init() {
 	stringConfig(agentCmd, "redis", "r", "127.0.0.1:6379", "redis instance that the agent should manage")
 	stringConfig(agentCmd, "manager", "m", "127.0.0.1:8080", "manager instance that the agent should report to")
+	stringConfig(agentCmd, "hostAnnotations", "", "", "host annotations is used to group nodes into different failure domains. Example dc=eu-central-1 vpc=prod01")
 	boolConfig(agentCmd, "managerTLS", "", true, "use tls when connecting to the manager")
 	boolConfig(agentCmd, "skip-prechecks", "", false, "skip prechecks at startup")
 	RootCmd.AddCommand(agentCmd)
@@ -37,7 +39,22 @@ var agentCmd = &cobra.Command{
 
 		var err error
 		skipPrechecks := viper.GetBool("skip-prechecks")
-		instanceAgent, err := agent.NewAgent(skipPrechecks)
+		hostAnnotations := viper.GetString("hostAnnotations")
+
+		annotations := map[string]string{}
+		for _, annotation := range strings.Split(hostAnnotations, " ") {
+			if split := strings.Split(annotation, "="); len(split) == 2 {
+				annotations[split[0]] = split[1]
+			}
+		}
+
+		hostname, err := os.Hostname()
+		if err != nil {
+			log.Fatalf("Could not lookup hostname: %v", err)
+		}
+		annotations["hostname"] = hostname
+
+		instanceAgent, err := agent.NewAgent(skipPrechecks, annotations)
 		if err != nil {
 			log.Fatalf("Could not initialize agent instance: %v", err)
 		}

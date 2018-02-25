@@ -19,6 +19,7 @@ func init() {
 	stringConfig(managerCmd, "managerAddr", "", ":8080", "manger listen address")
 	stringConfig(managerCmd, "debugAddr", "", ":8081", "debug server listen address")
 	stringConfig(managerCmd, "databaseFile", "", "apollo.db", "database path for internal state")
+	stringConfig(managerCmd, "replication", "", "3", "the replication factor the manager should try to fulfill")
 	RootCmd.AddCommand(managerCmd)
 }
 
@@ -37,7 +38,8 @@ var managerCmd = &cobra.Command{
 		managerAddr := viper.GetString("managerAddr")
 		httpAddr := viper.GetString("debugAddr")
 		databaseFile := viper.GetString("databaseFile")
-		instanceManager, err := manager.NewManager(managerAddr, httpAddr, databaseFile)
+		replicationFactor := viper.GetInt("replication")
+		instanceManager, err := manager.NewManager(managerAddr, httpAddr, databaseFile, replicationFactor)
 		if err != nil {
 			log.Fatalf("Could not initialize manager instance: %v", err)
 		}

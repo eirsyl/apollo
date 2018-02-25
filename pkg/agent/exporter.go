@@ -174,12 +174,18 @@ func (e *Exporter) scrape(scrapes chan<- scrapeResult) {
 	var up float64 = 1
 	scrapes <- scrapeResult{Name: "up", Value: up}
 
-	for name, value := range e.metrics.ExportMetrics() {
+	var metricChan = make(chan Metric, 1)
+
+	go e.metrics.ExportMetrics(&metricChan)
+
+	for metric := range metricChan {
+		name := metric.Name
 		if e.includeMetric(name) {
+
 			if newName, ok := metricMap[name]; ok {
 				name = newName
 			}
-			scrapes <- scrapeResult{Name: name, Value: value}
+			scrapes <- scrapeResult{Name: name, Value: metric.Value}
 		} else {
 			log.Debugf("Ignored metric: %s", name)
 		}

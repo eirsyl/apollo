@@ -9,8 +9,10 @@ It is generated from these files:
 	manager.proto
 
 It has these top-level messages:
-	HealthRequest
-	HealthResponse
+	StateRequest
+	StateResponse
+	ClusterNode
+	HostAnnotation
 */
 package api
 

@@ -15,17 +15,18 @@ import (
 
 // ReconciliationLoop is responsible for ensuring redis node state
 type ReconciliationLoop struct {
-	redis         *redis.Client
-	client        pb.ManagerClient
-	listener      *grpc.ClientConn
-	done          chan bool
-	scrapeResults chan redis.ScrapeResult
-	Metrics       *Metrics
-	skipPrechecks bool
+	redis           *redis.Client
+	client          pb.ManagerClient
+	listener        *grpc.ClientConn
+	done            chan bool
+	scrapeResults   chan redis.ScrapeResult
+	Metrics         *Metrics
+	skipPrechecks   bool
+	hostAnnotations map[string]string
 }
 
 // NewReconciliationLoop creates a new loop and returns the instance
-func NewReconciliationLoop(r *redis.Client, managerAddr string, skipPrechecks bool) (*ReconciliationLoop, error) {
+func NewReconciliationLoop(r *redis.Client, managerAddr string, skipPrechecks bool, hostAnnotations map[string]string) (*ReconciliationLoop, error) {
 	var opts = []grpc.DialOption{
 		grpc.WithUnaryInterceptor(grpc_prometheus.UnaryClientInterceptor),
 		grpc.WithStreamInterceptor(grpc_prometheus.StreamClientInterceptor),
@@ -49,13 +50,14 @@ func NewReconciliationLoop(r *redis.Client, managerAddr string, skipPrechecks bo
 	}
 
 	return &ReconciliationLoop{
-		redis:         r,
-		client:        client,
-		listener:      conn,
-		done:          make(chan bool),
-		scrapeResults: make(chan redis.ScrapeResult),
-		Metrics:       m,
-		skipPrechecks: skipPrechecks,
+		redis:           r,
+		client:          client,
+		listener:        conn,
+		done:            make(chan bool),
+		scrapeResults:   make(chan redis.ScrapeResult),
+		Metrics:         m,
+		skipPrechecks:   skipPrechecks,
+		hostAnnotations: hostAnnotations,
 	}, nil
 }
 
@@ -135,17 +137,15 @@ func (r *ReconciliationLoop) iteration() error {
 	}
 
 	isEmpty, _ := r.redis.IsEmpty()
-	log.Warnf("REDIS EMPTY: %v", isEmpty)
-
 	nodes, _ := r.redis.ClusterNodes()
-	log.Warn("Cluster nodes: %v", nodes)
 
-	status := pb.HealthRequest{
-		NodeId: "localhost",
-		Ready:  false,
-		Detail: "prechecks failed",
+	state := pb.StateRequest{
+		IsEmpty:         isEmpty,
+		Nodes:           *transformNodes(&nodes),
+		HostAnnotations: *transformHostAnnotations(&r.hostAnnotations),
 	}
-	res, err := r.client.AgentHealth(context.Background(), &status)
+
+	res, err := r.client.ReportState(context.Background(), &state)
 	if err != nil {
 		log.Warnf("Could not send: %v", err)
 	} else {

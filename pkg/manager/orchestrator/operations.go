@@ -36,3 +36,28 @@ func addNode() error {
 func deleteNode() error {
 	return nil
 }
+
+/**
+* Basic components
+ */
+
+func getMasterWithLeastReplicas() {}
+
+func getCoveredSlots() {}
+
+func checkSlotsCoverage() {}
+
+// checkOpenSlots: Slot is open if the slot is in a migration state
+func checkOpenSlots() {}
+
+func nodesWithKeysInSlot() {}
+
+func fixSlotsCoverage() {}
+
+func getSlotOwners() {}
+
+func isConfigConsistent() {}
+
+func optimizeAntiAffinity() {}
+
+func getAffinityScore() {}
