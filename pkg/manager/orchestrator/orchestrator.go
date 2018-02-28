@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 
+	"github.com/coreos/bbolt"
 	pb "github.com/eirsyl/apollo/pkg/api"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	log "github.com/sirupsen/logrus"
@@ -13,13 +14,13 @@ import (
 // Server implements the GRPC orchestrator server used by agents to coordinate
 // cluster changes.
 type Server struct {
-	listener    *net.Listener
-	grpcServer  *grpc.Server
-	replication int
+	listener   *net.Listener
+	grpcServer *grpc.Server
+	cluster    *Cluster
 }
 
 // NewServer creates a new GRPC orchestrator server
-func NewServer(managerAddr string, replication int) (*Server, error) {
+func NewServer(managerAddr string, db *bolt.DB, replication, minNodesCreate int) (*Server, error) {
 	lis, err := net.Listen("tcp", managerAddr)
 	if err != nil {
 		return nil, err
@@ -29,10 +30,15 @@ func NewServer(managerAddr string, replication int) (*Server, error) {
 		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 	)
 
+	cluster, err := NewCluster(replication, minNodesCreate, db)
+	if err != nil {
+		return nil, err
+	}
+
 	manager := &Server{
-		listener:    &lis,
-		grpcServer:  server,
-		replication: replication,
+		listener:   &lis,
+		grpcServer: server,
+		cluster:    cluster,
 	}
 
 	log.Info("Initializing orchestrator server")
@@ -41,9 +47,19 @@ func NewServer(managerAddr string, replication int) (*Server, error) {
 	return manager, nil
 }
 
-// Run starts the server
+// Run starts the server and cluster reconciliation loop
 func (s *Server) Run() error {
-	return s.grpcServer.Serve(*s.listener)
+	var errChan = make(chan error, 1)
+
+	go func() {
+		errChan <- s.grpcServer.Serve(*s.listener)
+	}()
+
+	go func() {
+		errChan <- s.cluster.Run()
+	}()
+
+	return <-errChan
 }
 
 // Shutdown stops the server gracefully

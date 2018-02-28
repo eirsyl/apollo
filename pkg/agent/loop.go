@@ -9,6 +9,7 @@ import (
 	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/agent/redis"
 	pb "github.com/eirsyl/apollo/pkg/api"
+	"github.com/eirsyl/apollo/pkg/contrib"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -138,7 +139,22 @@ func (r *ReconciliationLoop) iteration() error {
 		log.Debug("Node scrape success")
 	}
 
-	return r.reportInstanceState()
+	err = r.reportInstanceState()
+	if err != nil {
+		return err
+	}
+
+	commands, err := r.fetchCommands()
+	if err != nil {
+		return err
+	}
+
+	results, err := r.performActions(commands)
+	if err != nil {
+		return err
+	}
+
+	return r.reportResults(results)
 }
 
 // reportInstanceState collects the instance state and tries to send the state to the manager
@@ -170,6 +186,7 @@ func (r *ReconciliationLoop) reportInstanceState() error {
 				if err != nil {
 					log.Warnf("Could not report instance state: %v", err)
 				} else {
+					log.Debug("State sent to manager")
 					resultChan <- err
 					return
 				}
@@ -184,6 +201,19 @@ func (r *ReconciliationLoop) reportInstanceState() error {
 	case err := <-resultChan:
 		return err
 	}
+}
+
+// fetchCommands is responsible for fetching the´
+func (r *ReconciliationLoop) fetchCommands() ([]contrib.NodeCommand, error) {
+	return []contrib.NodeCommand{}, nil
+}
+
+func (r *ReconciliationLoop) performActions(commands []contrib.NodeCommand) ([]contrib.NodeCommandResult, error) {
+	return []contrib.NodeCommandResult{}, nil
+}
+
+func (r *ReconciliationLoop) reportResults(results []contrib.NodeCommandResult) error {
+	return nil
 }
 
 func (r *ReconciliationLoop) collectScrape() {

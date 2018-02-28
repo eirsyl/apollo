@@ -8,17 +8,19 @@ import (
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator"
 
 	bolt "github.com/coreos/bbolt"
+	"github.com/eirsyl/apollo/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 // Manager exports the manager struct used to operate an manager.
 type Manager struct {
-	managerAddr  string
-	httpAddr     string
-	httpServer   *HTTPServer
-	orchestrator *orchestrator.Server
-	db           *bolt.DB
-	replication  int
+	managerAddr    string
+	httpAddr       string
+	httpServer     *HTTPServer
+	orchestrator   *orchestrator.Server
+	db             *bolt.DB
+	replication    int
+	minNodesCreate int
 }
 
 // NewManager initializes a new manager instance and returns a pinter to it.
@@ -45,10 +47,11 @@ func NewManager(managerAddr, httpAddr, databaseFile string, replicationFactor in
 	}
 
 	return &Manager{
-		managerAddr: managerAddr,
-		httpAddr:    httpAddr,
-		db:          db,
-		replication: replicationFactor,
+		managerAddr:    managerAddr,
+		httpAddr:       httpAddr,
+		db:             db,
+		replication:    replicationFactor,
+		minNodesCreate: 9,
 	}, nil
 }
 
@@ -71,7 +74,8 @@ func (m *Manager) Run() error {
 			"managerAddr":       m.managerAddr,
 			"httpAddr":          m.httpAddr,
 			"replicationFactor": fmt.Sprintf("%d", m.replication),
-		})
+			"minNodesCreate":    fmt.Sprintf("%d", m.minNodesCreate),
+		}, m.db)
 		if err != nil {
 			errChan <- err
 			return
@@ -85,7 +89,7 @@ func (m *Manager) Run() error {
 
 	// Start orchestrator server
 	go func(errChan chan error) {
-		orchestratorServer, err := orchestrator.NewServer(m.managerAddr, m.replication)
+		orchestratorServer, err := orchestrator.NewServer(m.managerAddr, m.db, m.replication, m.minNodesCreate)
 		if err != nil {
 			errChan <- err
 			return
@@ -95,6 +99,16 @@ func (m *Manager) Run() error {
 		log.Infof("Starting orchestrator server on %s", m.managerAddr)
 		errChan <- m.orchestrator.Run()
 	}(errChan)
+
+	// Observe bolt statistics
+	go func() {
+		for {
+			time.Sleep(10 * time.Second)
+			// Grab the current stats and diff them.
+			stats := m.db.Stats()
+			utils.ReportBoltStats(&stats)
+		}
+	}()
 
 	return <-errChan
 }

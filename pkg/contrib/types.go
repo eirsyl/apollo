@@ -1,14 +1,22 @@
 package contrib
 
-// NodeCommand describes commands that the manager can issue to agents
-type NodeCommand int
+// Command describes commands that the manager can issue to agents
+type Command int
 
 const (
 	// AddSlotsCommand is used to assign slots to a node
-	AddSlotsCommand NodeCommand = 1
+	AddSlotsCommand Command = 1
 )
 
-type NodeCommandArguments interface {
-	SetArgument() error
-	GetArguments() map[string]string
+// NodeCommand stores a command that the manager issues to an agent
+type NodeCommand struct {
+	id        string
+	command   Command
+	arguments []string
+}
+
+// NodeCommandResult stores the result of a command execution, used to report result to the manager
+type NodeCommandResult struct {
+	id     string
+	result string
 }
