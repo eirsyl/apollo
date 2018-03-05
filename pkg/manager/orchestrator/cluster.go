@@ -72,8 +72,30 @@ func (c *Cluster) Run() error {
 
 // findClusterConfiguration is responsible for trying to figure out if the cluster is configured or not
 func (c *Cluster) findClusterConfiguration() {
+	log.Info("Starting configuration detection")
 	nodes, err := nodeList(c.db)
-	log.Infof("nodes: %v, err: %v", nodes, err)
+	if err != nil {
+		log.Warn("Could not retrieve nodes, skipping configuration detection: %v", err)
+		return
+	}
+
+	if len(nodes) < 3 {
+		log.Infof("Skipping configuration detection 3 or more nodes is required, current count: %d", len(nodes))
+		return
+	}
+
+	var onlineNodes = 0
+	var latestAllowedObservation = time.Now().UTC().Add(-2 * time.Minute)
+	for _, node := range nodes {
+		if node.LastObservation.After(c.startTime) && node.LastObservation.After(latestAllowedObservation) {
+			onlineNodes++
+		}
+	}
+	log.Infof("Total nodes: %d, online nodes: %d", len(nodes), onlineNodes)
+	if onlineNodes < 3 {
+		log.Infof("Skipping configuration detection, minimum 3 nodes has to be online and reporting state.")
+		return
+	}
 }
 
 // configureCluster configures the redis nodes as a cluster if all the requirements is meet
