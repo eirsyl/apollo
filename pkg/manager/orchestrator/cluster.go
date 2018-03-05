@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/coreos/bbolt"
+	pb "github.com/eirsyl/apollo/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,16 +28,27 @@ type Cluster struct {
 	desiredReplication int
 	minNodesCreate     int
 	db                 *bolt.DB
+	startTime          time.Time
 }
 
 // NewCluster creates a new cluster planner
 func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, error) {
+	// Create buckets
+	err := db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("nodes"))
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &Cluster{
 		state:              ClusterUnknown,
 		health:             ClusterOK,
 		desiredReplication: desiredReplication,
 		minNodesCreate:     minNodesCreate,
 		db:                 db,
+		startTime:          time.Now().UTC(),
 	}, nil
 }
 
@@ -58,14 +70,23 @@ func (c *Cluster) Run() error {
 	}
 }
 
+// findClusterConfiguration is responsible for trying to figure out if the cluster is configured or not
 func (c *Cluster) findClusterConfiguration() {
-	log.Info("Finding cluster configuration")
+	nodes, err := nodeList(c.db)
+	log.Infof("nodes: %v, err: %v", nodes, err)
 }
 
+// configureCluster configures the redis nodes as a cluster if all the requirements is meet
 func (c *Cluster) configureCluster() {
 
 }
 
+// iteration watches the cluster after everything is configured and up an running
 func (c *Cluster) iteration() {
 
+}
+
+// ReportState collects the state from the reporting node
+func (c *Cluster) ReportState(node *pb.StateRequest) error {
+	return nodeStore(c.db, node)
 }

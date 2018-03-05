@@ -69,7 +69,10 @@ func (s *Server) Shutdown() error {
 
 // ReportState grpc endpoint
 func (s *Server) ReportState(ctx context.Context, req *pb.StateRequest) (*pb.StateResponse, error) {
-	log.Infof("Request: %v", req)
+	err := s.cluster.ReportState(req)
+	if err != nil {
+		return nil, err
+	}
 	return &pb.StateResponse{}, nil
 }
 
