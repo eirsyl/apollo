@@ -43,6 +43,7 @@ func init() {
 	prometheus.MustRegister(boltOpenTxN)
 }
 
+// ReportBoltStats uses an instance of bolt stats and export these to prometheus
 func ReportBoltStats(stats *bolt.Stats) {
 	boltFreePageN.Set(float64(stats.FreePageN))
 	boltPendingPageN.Set(float64(stats.PendingPageN))

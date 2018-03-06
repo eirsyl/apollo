@@ -72,7 +72,7 @@ func newMetricsFromPb(node *pb.StateRequest) (map[string]float64, error) {
 	return res, nil
 }
 
-// NewNode is a shortcut for creating a new node struct.
+// NewNodeFromPb is a shortcut for creating a new node struct.
 func NewNodeFromPb(node *pb.StateRequest) (*Node, error) {
 	nodes, myself, err := newClusterNeighbourFromPb(node.Nodes)
 	if err != nil {

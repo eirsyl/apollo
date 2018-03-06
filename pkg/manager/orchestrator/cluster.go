@@ -12,13 +12,13 @@ type clusterState int
 type clusterHealth int
 
 const (
-	ClusterUnknown      clusterState = 0
-	ClusterUnconfigured clusterState = 1
-	ClusterConfigured   clusterState = 2
+	clusterUnknown      clusterState = 0
+	clusterUnconfigured clusterState = 1
+	clusterConfigured   clusterState = 2
 
-	ClusterOK    clusterHealth = 0
-	ClusterWarn  clusterHealth = 1
-	ClusterError clusterHealth = 2
+	clusterOK    clusterHealth = 0
+	clusterWarn  clusterHealth = 1
+	clusterError clusterHealth = 2
 )
 
 // Cluster stores the manager observations of the cluster
@@ -43,8 +43,8 @@ func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, 
 	}
 
 	return &Cluster{
-		state:              ClusterUnknown,
-		health:             ClusterOK,
+		state:              clusterUnknown,
+		health:             clusterError,
 		desiredReplication: desiredReplication,
 		minNodesCreate:     minNodesCreate,
 		db:                 db,
@@ -57,11 +57,11 @@ func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, 
 func (c *Cluster) Run() error {
 	for {
 		switch c.state {
-		case ClusterUnknown:
+		case clusterUnknown:
 			c.findClusterConfiguration()
-		case ClusterUnconfigured:
+		case clusterUnconfigured:
 			c.configureCluster()
-		case ClusterConfigured:
+		case clusterConfigured:
 			c.iteration()
 		default:
 			log.WithField("state", c.state).Warnf("Unhandled cluster state")
@@ -84,23 +84,59 @@ func (c *Cluster) findClusterConfiguration() {
 		return
 	}
 
-	var onlineNodes = 0
+	var onlineNodes = []Node{}
 	var latestAllowedObservation = time.Now().UTC().Add(-2 * time.Minute)
 	for _, node := range nodes {
 		if node.LastObservation.After(c.startTime) && node.LastObservation.After(latestAllowedObservation) {
-			onlineNodes++
+			onlineNodes = append(onlineNodes, node)
 		}
 	}
-	log.Infof("Total nodes: %d, online nodes: %d", len(nodes), onlineNodes)
-	if onlineNodes < 3 {
+	log.Infof("Total nodes: %d, online nodes: %d", len(nodes), len(onlineNodes))
+	if len(onlineNodes) < 3 {
 		log.Infof("Skipping configuration detection, minimum 3 nodes has to be online and reporting state.")
 		return
+	}
+
+	var onlineNodesEmpty = true
+	for _, node := range onlineNodes {
+		if !node.IsEmpty {
+			onlineNodesEmpty = false
+			break
+		}
+	}
+
+	if onlineNodesEmpty {
+		log.Infof("Online nodes empty, preparing for cluster initialization")
+		c.state = clusterUnconfigured
+	} else {
+		log.Infof("Nodes not empty, setting cluster to configured")
+		c.state = clusterConfigured
 	}
 }
 
 // configureCluster configures the redis nodes as a cluster if all the requirements is meet
 func (c *Cluster) configureCluster() {
+	nodes, err := nodeList(c.db)
+	if err != nil {
+		log.Warn("Could not retrieve nodes, skipping configuration detection: %v", err)
+		return
+	}
 
+	var onlineNodes = []Node{}
+	var latestAllowedObservation = time.Now().UTC().Add(-2 * time.Minute)
+	for _, node := range nodes {
+		if node.LastObservation.After(c.startTime) && node.LastObservation.After(latestAllowedObservation) {
+			onlineNodes = append(onlineNodes, node)
+		}
+	}
+
+	if len(onlineNodes) < c.minNodesCreate {
+		log.Infof("Skipping cluster creation %d nodes is required", c.minNodesCreate)
+		return
+	}
+
+	log.Infof("Generating cluster plan")
+	time.Sleep(100 * time.Second)
 }
 
 // iteration watches the cluster after everything is configured and up an running
@@ -112,3 +148,7 @@ func (c *Cluster) iteration() {
 func (c *Cluster) ReportState(node *pb.StateRequest) error {
 	return nodeStore(c.db, node)
 }
+
+/**
+ * Functions bellow this line is used to generate and manage cluster state
+ */

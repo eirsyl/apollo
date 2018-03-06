@@ -5,10 +5,11 @@ import (
 	"os/signal"
 	"syscall"
 
+	"time"
+
 	"github.com/eirsyl/apollo/pkg/manager"
 	"github.com/eirsyl/apollo/pkg/runtime"
 	"github.com/eirsyl/apollo/pkg/utils"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -20,6 +21,7 @@ func init() {
 	stringConfig(managerCmd, "debugAddr", "", ":8081", "debug server listen address")
 	stringConfig(managerCmd, "databaseFile", "", "apollo.db", "database path for internal state")
 	stringConfig(managerCmd, "replication", "", "3", "the replication factor the manager should try to fulfill")
+	stringConfig(managerCmd, "minNodesCreate", "", "0", "require minimum x online nodes before cluster initialization")
 	RootCmd.AddCommand(managerCmd)
 }
 
@@ -39,7 +41,8 @@ var managerCmd = &cobra.Command{
 		httpAddr := viper.GetString("debugAddr")
 		databaseFile := viper.GetString("databaseFile")
 		replicationFactor := viper.GetInt("replication")
-		instanceManager, err := manager.NewManager(managerAddr, httpAddr, databaseFile, replicationFactor)
+		minNodesCreate := viper.GetInt("minNodesCreate")
+		instanceManager, err := manager.NewManager(managerAddr, httpAddr, databaseFile, replicationFactor, minNodesCreate)
 		if err != nil {
 			log.Fatalf("Could not initialize manager instance: %v", err)
 		}

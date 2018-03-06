@@ -24,7 +24,7 @@ type Manager struct {
 }
 
 // NewManager initializes a new manager instance and returns a pinter to it.
-func NewManager(managerAddr, httpAddr, databaseFile string, replicationFactor int) (*Manager, error) {
+func NewManager(managerAddr, httpAddr, databaseFile string, replicationFactor, minNodesCreate int) (*Manager, error) {
 	if managerAddr == "" {
 		return nil, errors.New("The manager address cannot be empty")
 	}
@@ -46,12 +46,16 @@ func NewManager(managerAddr, httpAddr, databaseFile string, replicationFactor in
 		return nil, errors.New("The replication factor must be larger than 0")
 	}
 
+	if !(minNodesCreate >= 3) {
+		return nil, errors.New("The minNodesCreate has to be 3 or higher, this is the only way to initialize cluster creation")
+	}
+
 	return &Manager{
 		managerAddr:    managerAddr,
 		httpAddr:       httpAddr,
 		db:             db,
 		replication:    replicationFactor,
-		minNodesCreate: 9,
+		minNodesCreate: minNodesCreate,
 	}, nil
 }
 
