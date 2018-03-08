@@ -6,6 +6,12 @@ import (
 	"github.com/eirsyl/apollo/pkg/agent/redis"
 )
 
+/**
+ * This file contains the internal metric storage used by the agent.
+ * The values stored here is a key value pair consisting of a string
+ * and a float64.
+ */
+
 // Metrics stores the collected state of the redis node
 type Metrics struct {
 	registry map[string]float64

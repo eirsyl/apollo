@@ -1,5 +1,6 @@
 package orchestrator
 
+/*
 // ClusterOperations is responsible for the manager orchestration of cluster changes.
 type ClusterOperations struct {
 }
@@ -37,9 +38,7 @@ func deleteNode() error {
 	return nil
 }
 
-/**
 * Basic components
- */
 
 func getMasterWithLeastReplicas() {}
 
@@ -61,3 +60,4 @@ func isConfigConsistent() {}
 func optimizeAntiAffinity() {}
 
 func getAffinityScore() {}
+*/

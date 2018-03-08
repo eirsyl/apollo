@@ -2,13 +2,19 @@ package agent
 
 import (
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	prom_strutil "github.com/prometheus/prometheus/util/strutil"
-	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	prom_strutil "github.com/prometheus/prometheus/util/strutil"
+	log "github.com/sirupsen/logrus"
 )
+
+/**
+ * This file is a prometheus specific component. The exporter uses the metrics registry
+ * to generate prometheus counters and gauges.
+ */
 
 // Exporter is reponsible for exporting redis gauges to prometheus.
 type Exporter struct {

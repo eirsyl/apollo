@@ -6,6 +6,10 @@ import (
 	pb "github.com/eirsyl/apollo/pkg/api"
 )
 
+/**
+ * This file contains internal helper functions used by the agent only
+ */
+
 func transformNodes(nodes *[]redis.ClusterNode) *[]*pb.ClusterNode {
 	var tNodes = make([]*pb.ClusterNode, len(*nodes))
 

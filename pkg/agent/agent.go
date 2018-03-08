@@ -12,6 +12,11 @@ import (
 	"github.com/spf13/viper"
 )
 
+/**
+ * This file contains the main entrypoint for the agent. It is responsible
+ * for starting the http debug server and the agent executor.
+ */
+
 // Agent exports the proxy struct
 type Agent struct {
 	httpServer *HTTPServer

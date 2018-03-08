@@ -29,6 +29,7 @@ type Cluster struct {
 	minNodesCreate     int
 	db                 *bolt.DB
 	startTime          time.Time
+	planner            *planner
 }
 
 // NewCluster creates a new cluster planner
@@ -42,6 +43,11 @@ func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, 
 		return nil, err
 	}
 
+	planner, err := newPlanner()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Cluster{
 		state:              clusterUnknown,
 		health:             clusterError,
@@ -49,6 +55,7 @@ func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, 
 		minNodesCreate:     minNodesCreate,
 		db:                 db,
 		startTime:          time.Now().UTC(),
+		planner:            planner,
 	}, nil
 }
 
@@ -147,6 +154,18 @@ func (c *Cluster) iteration() {
 // ReportState collects the state from the reporting node
 func (c *Cluster) ReportState(node *pb.StateRequest) error {
 	return nodeStore(c.db, node)
+}
+
+// NextExecution sends the next command to a node. The planner returns a command if
+// a step is planned by the manager.
+func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*command, error) {
+	return c.planner.nextCommand(req.NodeID)
+}
+
+// ReportExecution reports the status of a command executed on a node
+func (c *Cluster) ReportExecution(req *pb.ReportExecutionRequest) error {
+	// TODO: Transform req into commandResult
+	return c.planner.reportResult(req.NodeID, &commandResult{})
 }
 
 /**

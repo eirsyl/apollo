@@ -12,6 +12,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/**
+ * This file starts the actual manager based on flags provided by the cli.
+ * The flags is validated here.
+ */
+
 // Manager exports the manager struct used to operate an manager.
 type Manager struct {
 	managerAddr    string

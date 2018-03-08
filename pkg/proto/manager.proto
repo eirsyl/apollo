@@ -20,7 +20,7 @@ message StateResponse {
 }
 
 message NextExecutionRequest {
-
+    string nodeID = 1;
 }
 
 message NextExecutionResponse {
@@ -28,7 +28,8 @@ message NextExecutionResponse {
 }
 
 message ReportExecutionRequest {
-    repeated ExecutionResult commandResults = 1;
+    string nodeID = 1;
+    repeated ExecutionResult commandResults = 2;
 }
 
 message ReportExecutionResponse {

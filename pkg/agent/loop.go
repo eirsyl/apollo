@@ -16,6 +16,12 @@ import (
 	"google.golang.org/grpc"
 )
 
+/**
+ * This file contains the main reconciliation loop. The loop is responsible
+ * for running startup checks, fetching commands from the manager, execute the
+ * commands and report the status back to the manager.
+ */
+
 // ReconciliationLoop is responsible for ensuring redis node state
 type ReconciliationLoop struct {
 	redis           *redis.Client
@@ -26,6 +32,7 @@ type ReconciliationLoop struct {
 	Metrics         *Metrics
 	skipPrechecks   bool
 	hostAnnotations map[string]string
+	nodeID          string
 }
 
 // NewReconciliationLoop creates a new loop and returns the instance
@@ -165,6 +172,9 @@ func (r *ReconciliationLoop) reportInstanceState() error {
 	nodes, _ := r.redis.ClusterNodes()
 	go r.Metrics.ExportMetrics(&metricsChan)
 
+	// Set node id
+	r.setNodeID(nodes)
+
 	state := pb.StateRequest{
 		IsEmpty:         isEmpty,
 		Nodes:           *transformNodes(&nodes),
@@ -221,6 +231,26 @@ func (r *ReconciliationLoop) collectScrape() {
 	for {
 		scrapeResult := <-r.scrapeResults
 		r.Metrics.RegisterMetric(scrapeResult)
+	}
+}
+
+// setNodeID updates the nodeID used by the agent based on the nodes list retrieved from redis.
+func (r *ReconciliationLoop) setNodeID(nodes []redis.ClusterNode) {
+	var nodeID string
+	for _, node := range nodes {
+		if node.Myself {
+			nodeID = node.NodeID
+			break
+		}
+	}
+
+	if nodeID != "" {
+		if nodeID != r.nodeID {
+			log.Infof("Updating nodeID, new ID: %s", nodeID)
+			r.nodeID = nodeID
+		}
+	} else {
+		log.Warn("Could not find nodeID, invalid nodes list")
 	}
 }
 

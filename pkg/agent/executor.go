@@ -7,8 +7,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Executor implements an GRPC server and a reconciliation loop
-// that it used for detecting problems with the redis node.
+/**
+ * This file contains the glue between the redis client and the reconciliation
+ * loop. The prometheus metrics is registered here for convenience.
+ */
+
+// Executor creates a redis connection and runs the reconciliation loop.
 type Executor struct {
 	redis       *redis.Client
 	managerAddr string

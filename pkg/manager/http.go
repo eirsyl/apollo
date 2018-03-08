@@ -13,6 +13,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+/**
+ * This file contains the http debug server. The debug server reports basic instance details,
+ * system metrics and an endpoint for boltDB backup.
+ */
+
 // HTTPServer exposes an http server with prometheus monitoring enabled
 type HTTPServer struct {
 	server *http.Server
