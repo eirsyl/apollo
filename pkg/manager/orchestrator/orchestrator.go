@@ -78,13 +78,7 @@ func (s *Server) ReportState(ctx context.Context, req *pb.StateRequest) (*pb.Sta
 
 // NextExecution grpc endpoint
 func (s *Server) NextExecution(ctx context.Context, req *pb.NextExecutionRequest) (*pb.NextExecutionResponse, error) {
-	// Todo: Transform planner command into response
-	_, err := s.cluster.NextExecution(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return &pb.NextExecutionResponse{}, nil
+	return s.cluster.NextExecution(req)
 }
 
 // ReportExecutionResult grpc endpoint

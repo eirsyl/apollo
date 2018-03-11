@@ -5,6 +5,7 @@ import (
 
 	"github.com/coreos/bbolt"
 	pb "github.com/eirsyl/apollo/pkg/api"
+	"github.com/eirsyl/apollo/pkg/manager/orchestrator/planner"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +30,7 @@ type Cluster struct {
 	minNodesCreate     int
 	db                 *bolt.DB
 	startTime          time.Time
-	planner            *planner
+	planner            *planner.Planner
 }
 
 // NewCluster creates a new cluster planner
@@ -43,7 +44,7 @@ func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, 
 		return nil, err
 	}
 
-	planner, err := newPlanner()
+	p, err := planner.NewPlanner()
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, 
 		minNodesCreate:     minNodesCreate,
 		db:                 db,
 		startTime:          time.Now().UTC(),
-		planner:            planner,
+		planner:            p,
 	}, nil
 }
 
@@ -113,7 +114,7 @@ func (c *Cluster) findClusterConfiguration() {
 	}
 
 	if onlineNodesEmpty {
-		log.Infof("Online nodes empty, preparing for cluster initialization")
+		log.Infof("Online nodes empty, setting cluster state to unconfigured and preparing for cluster initialization")
 		c.state = clusterUnconfigured
 	} else {
 		log.Infof("Nodes not empty, setting cluster to configured")
@@ -142,13 +143,51 @@ func (c *Cluster) configureCluster() {
 		return
 	}
 
-	log.Infof("Generating cluster plan")
-	time.Sleep(100 * time.Second)
+	log.Infof("Generating cluster creation plan")
+	var nodeIds []string
+	for _, node := range onlineNodes {
+		nodeIds = append(nodeIds, node.ID)
+	}
+
+	validConfiguration := validateClusterSize(len(nodeIds), c.desiredReplication)
+	if !validConfiguration {
+		log.Warnf("invalid cluster, Redis Cluster requires at least 3 master nodes. %d nodes is required with the replication %d", 3*(c.desiredReplication+1), c.desiredReplication)
+		return
+	}
+
+	// Create the cluster creation task and update cluster state
+	err = setClusterNodes(c.db, nodeIds)
+	if err != nil {
+		log.Warnf("Could not update cluster members: %v", err)
+		return
+	}
+
+	slots, err := allocSlots(&onlineNodes, c.desiredReplication)
+
+	err = c.planner.NewCreateClusterTask(slots)
+	if err != nil {
+		log.Infof("Could not generate cluster creation plan: %v", err)
+		return
+	}
+
+	log.Info("Updating cluster state")
+	c.health = clusterWarn
+	c.state = clusterConfigured
 }
 
 // iteration watches the cluster after everything is configured and up an running
 func (c *Cluster) iteration() {
+	l := log.WithFields(log.Fields{"clusterHealth": c.health, "clusterState": c.state})
+	l.Info("Running iteration")
 
+	t, err := c.planner.CurrentTask()
+	if err != nil {
+		l.Infof("Planner error: %v", err)
+	}
+
+	for id, command := range t.Commands {
+		log.Infof("commandID: %v, Command: %v", id, *command)
+	}
 }
 
 // ReportState collects the state from the reporting node
@@ -158,14 +197,17 @@ func (c *Cluster) ReportState(node *pb.StateRequest) error {
 
 // NextExecution sends the next command to a node. The planner returns a command if
 // a step is planned by the manager.
-func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*command, error) {
-	return c.planner.nextCommand(req.NodeID)
+func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*pb.NextExecutionResponse, error) {
+	// TODO: Lookup commands and send to node
+	return &pb.NextExecutionResponse{
+		Commands: []*pb.ExecutionCommand{},
+	}, nil
 }
 
 // ReportExecution reports the status of a command executed on a node
 func (c *Cluster) ReportExecution(req *pb.ReportExecutionRequest) error {
-	// TODO: Transform req into commandResult
-	return c.planner.reportResult(req.NodeID, &commandResult{})
+	// TODO: Parse and store execution result
+	return c.planner.ReportResult(req.NodeID, &planner.CommandResult{})
 }
 
 /**

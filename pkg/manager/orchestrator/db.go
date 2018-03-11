@@ -7,6 +7,9 @@ import (
 	pb "github.com/eirsyl/apollo/pkg/api"
 )
 
+/**
+ * Store a node inside the node bucket
+ */
 func nodeStore(db *bolt.DB, node *pb.StateRequest) error {
 	return db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("nodes"))
@@ -26,6 +29,9 @@ func nodeStore(db *bolt.DB, node *pb.StateRequest) error {
 	})
 }
 
+/**
+ *  List nodes stored in the nodes bucket
+ */
 func nodeList(db *bolt.DB) (map[string]Node, error) {
 	var nodes = map[string]Node{}
 
@@ -48,4 +54,39 @@ func nodeList(db *bolt.DB) (map[string]Node, error) {
 		return nil, err
 	}
 	return nodes, nil
+}
+
+/**
+ * Store a list of current active nodes
+ */
+func setClusterNodes(db *bolt.DB, nodeIds []string) error {
+	return nil
+}
+
+/**
+ * Add another node to the list of cluster nodes
+ */
+func addClusterNode(db *bolt.DB, nodeId string) error {
+	return nil
+}
+
+/**
+ * Remove a cluster node from the list of members
+ */
+func removeClusterNode(db *bolt.DB, nodeId string) error {
+	return nil
+}
+
+/**
+ * List all members of the cluster
+ */
+func listClusterNodes(db *bolt.DB) ([]string, error) {
+	return []string{}, nil
+}
+
+/**
+ * Remove all cluster nodes
+ */
+func clearClusterMembers(db *bolt.DB) error {
+	return nil
 }
