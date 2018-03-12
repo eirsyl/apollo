@@ -59,21 +59,21 @@ func nodeList(db *bolt.DB) (map[string]Node, error) {
 /**
  * Store a list of current active nodes
  */
-func setClusterNodes(db *bolt.DB, nodeIds []string) error {
+func setClusterNodes(db *bolt.DB, nodeIDs []string) error {
 	return nil
 }
 
 /**
  * Add another node to the list of cluster nodes
  */
-func addClusterNode(db *bolt.DB, nodeId string) error {
+func addClusterNode(db *bolt.DB, nodeID string) error {
 	return nil
 }
 
 /**
  * Remove a cluster node from the list of members
  */
-func removeClusterNode(db *bolt.DB, nodeId string) error {
+func removeClusterNode(db *bolt.DB, nodeID string) error {
 	return nil
 }
 

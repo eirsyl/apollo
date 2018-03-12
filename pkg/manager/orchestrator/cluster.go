@@ -163,6 +163,9 @@ func (c *Cluster) configureCluster() {
 	}
 
 	slots, err := allocSlots(&onlineNodes, c.desiredReplication)
+	if err != nil {
+		log.Warnf("Could not calculate slots: %v", err)
+	}
 
 	err = c.planner.NewCreateClusterTask(slots)
 	if err != nil {

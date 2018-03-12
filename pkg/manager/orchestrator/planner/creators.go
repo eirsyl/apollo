@@ -1,5 +1,11 @@
 package planner
 
+import (
+	log "github.com/sirupsen/logrus"
+)
+
+// CreateClusterNodeOpts is used to provide extra data to the NewCreateClusterTask func.
+// A struct is ude
 type CreateClusterNodeOpts struct {
 	Slots             []int
 	ReplicationTarget string
@@ -12,17 +18,17 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 
 	// Assign slots and replicate nodes
 	roleAssignments := []*Command{}
-	for nodeId, config := range opts {
+	for nodeID, config := range opts {
 		co := *NewCommandOpts()
 		var command *Command
 		var err error
 
 		if config.ReplicationTarget != "" {
 			co.AddKS("target", config.ReplicationTarget)
-			command, err = NewCommand(nodeId, CommandSetReplicate, co, nil)
+			command, err = NewCommand(nodeID, CommandSetReplicate, co, nil)
 		} else {
 			co.AddKIL("slots", config.Slots)
-			command, err = NewCommand(nodeId, CommandAddSlots, co, nil)
+			command, err = NewCommand(nodeID, CommandAddSlots, co, nil)
 		}
 
 		if err != nil {
@@ -34,11 +40,11 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 	// Set epochs
 	epochAssignements := []*Command{}
 	epoch := 1
-	for nodeId := range opts {
+	for nodeID := range opts {
 		co := *NewCommandOpts()
 		co.AddKS("epoch", string(epoch))
 		epoch++
-		command, err := NewCommand(nodeId, CommandSetEpoch, co, roleAssignments)
+		command, err := NewCommand(nodeID, CommandSetEpoch, co, roleAssignments)
 		if err != nil {
 			return err
 		}
@@ -48,21 +54,21 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 	// Join cluster command
 	clusterJoin := []*Command{}
 	lastNode := ""
-	for nodeId, config := range opts {
+	for nodeID, config := range opts {
 		if lastNode == "" {
-			lastNode = nodeId
+			lastNode = nodeID
 			continue
 		}
 
 		co := *NewCommandOpts()
 		co.AddKS("node", config.Addr)
-		command, err := NewCommand(nodeId, CommandJoinCluster, co, epochAssignements)
+		command, err := NewCommand(nodeID, CommandJoinCluster, co, epochAssignements)
 		if err != nil {
 			return err
 		}
 		clusterJoin = append(clusterJoin, command)
 
-		lastNode = nodeId
+		lastNode = nodeID
 	}
 
 	commands := append(roleAssignments, epochAssignements...)
@@ -78,11 +84,15 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 	p.lock.Unlock()
 
 	// Issue a check cluster task
-	p.NewCheckClusterTask()
+	err = p.NewCheckClusterTask()
+	if err != nil {
+		log.Warnf("Could not create cluster check task: %v", err)
+	}
 
 	return nil
 }
 
+// NewCheckClusterTask creates a task for cluster checks
 func (p *Planner) NewCheckClusterTask() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()

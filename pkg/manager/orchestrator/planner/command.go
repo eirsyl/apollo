@@ -10,19 +10,26 @@ type commandStatus int
 type commandType int
 
 var (
-	CommandWaiting commandStatus = 0
+	// CommandWaiting is used before a node has tried to execute the command
+	CommandWaiting commandStatus
 
-	CommandAddSlots     commandType = 1
+	// CommandAddSlots represents the command that is responsible for adding slots to a master node.
+	CommandAddSlots commandType = 1
+	// CommandSetReplicate represents the command used to set replication on a slave
 	CommandSetReplicate commandType = 2
-	CommandSetEpoch     commandType = 3
-	CommandJoinCluster  commandType = 4
+	// CommandSetEpoch is used to set the cluster epoch
+	CommandSetEpoch commandType = 3
+	// CommandJoinCluster is used to call the CLUSTER MEET command.
+	CommandJoinCluster commandType = 4
 )
 
+// CommandOpts is used to attach extra data to commands.
 type CommandOpts struct {
 	KeyString  map[string]string
 	KeyIntList map[string][]int
 }
 
+// NewCommandOpts creates a new CommandOpts used to pass extra data to commands.
 func NewCommandOpts() *CommandOpts {
 	return &CommandOpts{
 		KeyString:  map[string]string{},
@@ -30,10 +37,12 @@ func NewCommandOpts() *CommandOpts {
 	}
 }
 
+// AddKS is used to attach a string to a key in the key value mapping.
 func (co *CommandOpts) AddKS(key, value string) {
 	co.KeyString[key] = value
 }
 
+// AddKIL is used to add a list of integers to a key in the key to int list mapping.
 func (co *CommandOpts) AddKIL(key string, value []int) {
 	co.KeyIntList[key] = value
 }
@@ -41,7 +50,7 @@ func (co *CommandOpts) AddKIL(key string, value []int) {
 // Command represents a command that should be executed on a node
 type Command struct {
 	ID           uuid.UUID
-	NodeId       string
+	NodeID       string
 	Type         commandType
 	Status       commandStatus
 	Opts         CommandOpts
@@ -52,13 +61,13 @@ type Command struct {
 }
 
 // NewCommand creates a new command
-func NewCommand(nodeId string, ct commandType, opts CommandOpts, dependencies []*Command) (*Command, error) {
+func NewCommand(nodeID string, ct commandType, opts CommandOpts, dependencies []*Command) (*Command, error) {
 	if dependencies == nil {
 		dependencies = []*Command{}
 	}
 	return &Command{
 		ID:           uuid.NewV4(),
-		NodeId:       nodeId,
+		NodeID:       nodeID,
 		Type:         ct,
 		Opts:         opts,
 		Status:       CommandWaiting,

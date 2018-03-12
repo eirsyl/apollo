@@ -2,13 +2,14 @@ package planner
 
 import "sync"
 
-// planner is responsible for storing the plans that the cluster manager plans to
+// Planner is responsible for storing the plans that the cluster manager plans to
 // execute.
 type Planner struct {
 	lock  sync.Mutex
 	tasks []*Task
 }
 
+// NewPlanner creates a new planner instance
 func NewPlanner() (*Planner, error) {
 	return &Planner{}, nil
 }
@@ -27,8 +28,8 @@ func (p *Planner) CurrentTask() (*Task, error) {
 	return nil, nil
 }
 
-// NextCommend sends the next command to be executed by a node
-func (p *Planner) NextCommand(nodeId string) (*Command, error) {
+// NextCommand sends the next command to be executed by a node
+func (p *Planner) NextCommand(nodeID string) (*Command, error) {
 	task, err := p.CurrentTask()
 	if err != nil {
 		return nil, err
@@ -38,7 +39,7 @@ func (p *Planner) NextCommand(nodeId string) (*Command, error) {
 		return nil, nil
 	}
 
-	command, err := task.NextCommand(nodeId)
+	command, err := task.NextCommand(nodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +48,6 @@ func (p *Planner) NextCommand(nodeId string) (*Command, error) {
 }
 
 // ReportResult saves a execution result from a node
-func (p *Planner) ReportResult(nodeId string, result *CommandResult) error {
+func (p *Planner) ReportResult(nodeID string, result *CommandResult) error {
 	return nil
 }
