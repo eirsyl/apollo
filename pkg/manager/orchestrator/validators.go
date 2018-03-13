@@ -5,5 +5,5 @@ package orchestrator
  */
 func validateClusterSize(nodes, replicas int) bool {
 	masters := nodes / (replicas + 1)
-	return masters > 3
+	return masters >= 3
 }

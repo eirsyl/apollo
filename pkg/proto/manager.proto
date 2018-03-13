@@ -72,4 +72,5 @@ message ExecutionCommand {
 message ExecutionResult {
     string id = 1;
     repeated string result = 2;
+    bool success = 3;
 }

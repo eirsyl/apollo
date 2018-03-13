@@ -3,6 +3,8 @@ package orchestrator
 import (
 	"time"
 
+	"strconv"
+
 	"github.com/coreos/bbolt"
 	pb "github.com/eirsyl/apollo/pkg/api"
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator/planner"
@@ -183,14 +185,11 @@ func (c *Cluster) iteration() {
 	l := log.WithFields(log.Fields{"clusterHealth": c.health, "clusterState": c.state})
 	l.Info("Running iteration")
 
-	t, err := c.planner.CurrentTask()
+	_, err := c.planner.CurrentTask()
 	if err != nil {
 		l.Infof("Planner error: %v", err)
 	}
 
-	for id, command := range t.Commands {
-		log.Infof("commandID: %v, Command: %v", id, *command)
-	}
 }
 
 // ReportState collects the state from the reporting node
@@ -201,16 +200,58 @@ func (c *Cluster) ReportState(node *pb.StateRequest) error {
 // NextExecution sends the next command to a node. The planner returns a command if
 // a step is planned by the manager.
 func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*pb.NextExecutionResponse, error) {
-	// TODO: Lookup commands and send to node
+	nextCommands, err := c.planner.NextCommands(req.NodeID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	var commands []*pb.ExecutionCommand
+	for _, command := range nextCommands {
+		command.UpdateStatus(planner.CommandRunning)
+		var arguments []string
+
+		switch command.Type {
+		case planner.CommandAddSlots:
+			for _, slot := range command.Opts.GetKIL("slots") {
+				arguments = append(arguments, strconv.Itoa(slot))
+			}
+		case planner.CommandSetReplicate:
+			arguments = []string{command.Opts.GetKS("target")}
+		case planner.CommandSetEpoch:
+			arguments = []string{command.Opts.GetKS("epoch")}
+		case planner.CommandJoinCluster:
+			arguments = []string{command.Opts.GetKS("node")}
+		default:
+			log.Warnf("Received command without opt parser: %v", command.Type)
+		}
+
+		log.Infof("Sending command to agent: %v %v %v", req.NodeID, command.ID.String(), command.Type)
+		commands = append(commands, &pb.ExecutionCommand{
+			Id:        command.ID.String(),
+			Command:   command.Type.Int64(),
+			Arguments: arguments,
+		})
+	}
+
 	return &pb.NextExecutionResponse{
-		Commands: []*pb.ExecutionCommand{},
+		Commands: commands,
 	}, nil
 }
 
 // ReportExecution reports the status of a command executed on a node
 func (c *Cluster) ReportExecution(req *pb.ReportExecutionRequest) error {
-	// TODO: Parse and store execution result
-	return c.planner.ReportResult(req.NodeID, &planner.CommandResult{})
+	var results []*planner.CommandResult
+
+	for _, result := range req.CommandResults {
+		log.Infof("Storing execution result: %v %v", req.NodeID, result.Id)
+		cr, err := planner.NewCommandResult(result.Id, result.Result, result.Success)
+		if err != nil {
+			return err
+		}
+		results = append(results, cr)
+	}
+
+	return c.planner.ReportResult(req.NodeID, results)
 }
 
 /**

@@ -156,6 +156,10 @@ func (r *ReconciliationLoop) iteration() error {
 		return err
 	}
 
+	if commands == nil {
+		return nil
+	}
+
 	results, err := r.performActions(commands)
 	if err != nil {
 		return err
@@ -214,15 +218,71 @@ func (r *ReconciliationLoop) reportInstanceState() error {
 }
 
 // fetchCommands is responsible for fetching the´
-func (r *ReconciliationLoop) fetchCommands() ([]contrib.NodeCommand, error) {
-	return []contrib.NodeCommand{}, nil
+func (r *ReconciliationLoop) fetchCommands() ([]*contrib.NodeCommand, error) {
+	request := pb.NextExecutionRequest{
+		NodeID: r.nodeID,
+	}
+	response, err := r.client.NextExecution(context.Background(), &request)
+	if err != nil {
+		return nil, err
+	}
+
+	var commands []*contrib.NodeCommand
+
+	for _, command := range response.Commands {
+		c, err := contrib.NewNodeCommand(command.Id, command.Command, command.Arguments)
+		if err != nil {
+			return nil, err
+		}
+		commands = append(commands, c)
+	}
+
+	return commands, nil
 }
 
-func (r *ReconciliationLoop) performActions(commands []contrib.NodeCommand) ([]contrib.NodeCommandResult, error) {
-	return []contrib.NodeCommandResult{}, nil
+func (r *ReconciliationLoop) performActions(commands []*contrib.NodeCommand) ([]*contrib.NodeCommandResult, error) {
+	if len(commands) == 0 {
+		return nil, nil
+	}
+
+	log.Infof("Agent received %d commands from the manager", len(commands))
+
+	var results []*contrib.NodeCommandResult
+
+	for _, command := range commands {
+		log.Infof("Running command: %v %v", command.Id, command.Command)
+		// TODO: Run the actual command and construct a command result
+		result, err := contrib.NewNodeCommandResult(command.Id, []string{}, true)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, result)
+	}
+
+	return results, nil
 }
 
-func (r *ReconciliationLoop) reportResults(results []contrib.NodeCommandResult) error {
+func (r *ReconciliationLoop) reportResults(results []*contrib.NodeCommandResult) error {
+	var cm []*pb.ExecutionResult
+
+	for _, result := range results {
+		log.Infof("Sending command result for task: %v", result.Id)
+		cm = append(cm, &pb.ExecutionResult{
+			Id:      result.Id,
+			Result:  result.Result,
+			Success: result.Success,
+		})
+	}
+
+	request := pb.ReportExecutionRequest{
+		NodeID:         r.nodeID,
+		CommandResults: cm,
+	}
+	_, err := r.client.ReportExecutionResult(context.Background(), &request)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

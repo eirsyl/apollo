@@ -1,6 +1,10 @@
 package planner
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/satori/go.uuid"
+)
 
 // Planner is responsible for storing the plans that the cluster manager plans to
 // execute.
@@ -29,7 +33,7 @@ func (p *Planner) CurrentTask() (*Task, error) {
 }
 
 // NextCommand sends the next command to be executed by a node
-func (p *Planner) NextCommand(nodeID string) (*Command, error) {
+func (p *Planner) NextCommands(nodeID string, updateTaskState bool) ([]*Command, error) {
 	task, err := p.CurrentTask()
 	if err != nil {
 		return nil, err
@@ -39,15 +43,44 @@ func (p *Planner) NextCommand(nodeID string) (*Command, error) {
 		return nil, nil
 	}
 
-	command, err := task.NextCommand(nodeID)
+	commands, err := task.NextCommands(nodeID)
 	if err != nil {
 		return nil, err
 	}
 
-	return command, nil
+	if updateTaskState {
+		task.UpdateStatus()
+	}
+
+	return commands, nil
 }
 
 // ReportResult saves a execution result from a node
-func (p *Planner) ReportResult(nodeID string, result *CommandResult) error {
+func (p *Planner) ReportResult(nodeID string, results []*CommandResult) error {
+	cr := map[uuid.UUID]*CommandResult{}
+	for _, result := range results {
+		cr[result.ID] = result
+	}
+
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	for _, task := range p.tasks {
+		if task.Status == StatusWaiting || task.Status == StatusExecuted {
+			continue
+		}
+
+		for _, command := range task.Commands {
+			result, ok := cr[command.ID]
+			if !ok {
+				continue
+			}
+
+			command.ReportResult(result)
+		}
+
+		task.UpdateStatus()
+	}
+
 	return nil
 }

@@ -1,5 +1,9 @@
 package planner
 
+import (
+	log "github.com/sirupsen/logrus"
+)
+
 type taskType int
 type taskStatus int
 
@@ -43,6 +47,63 @@ func NewTask(t taskType, commands []*Command) (*Task, error) {
 }
 
 // NextCommand returns the next command to be executed by a node with the provided NodeID
-func (t *Task) NextCommand(nodeID string) (*Command, error) {
-	return nil, nil
+func (t *Task) NextCommands(nodeID string) ([]*Command, error) {
+	commands := []*Command{}
+
+	for _, command := range t.Commands {
+		if command.NodeID != nodeID {
+			continue
+		}
+
+		if command.Status == CommandRunning {
+			commands = append(commands, command)
+			continue
+		}
+
+		if command.Status == CommandWaiting {
+			if len(command.Dependencies) == 0 {
+				commands = append(commands, command)
+			} else {
+				available := true
+				for _, command := range command.Dependencies {
+					if command.Status != CommandFinished {
+						available = false
+						break
+					}
+				}
+				if available {
+					commands = append(commands, command)
+				}
+			}
+			continue
+		}
+	}
+	return commands, nil
+}
+
+// UpdateStatus checks the task state based on the command states
+func (t *Task) UpdateStatus() {
+	status := StatusWaiting
+	allFinished := true
+
+	for _, command := range t.Commands {
+		switch command.Status {
+		case CommandWaiting:
+			allFinished = false
+			continue
+		case CommandRunning:
+			allFinished = false
+			status = StatusExecuting
+			break
+		}
+	}
+
+	if allFinished {
+		status = StatusExecuted
+	}
+
+	if status != t.Status {
+		log.Infof("Updating task status: %v %v", t.Type, status)
+		t.Status = status
+	}
 }
