@@ -44,12 +44,12 @@ func allocSlots(nodes *[]Node, replication int) (map[string]*planner.CreateClust
 			first = last + 1
 			cursor += float64(slotsPerNode)
 
-			config[node.ID] = &planner.CreateClusterNodeOpts{Slots: slots}
+			config[node.ID] = &planner.CreateClusterNodeOpts{Slots: slots, Addr: node.Addr}
 		} else {
 			// Replication assignment
 			replicationTarget := masterNodes[i%masters]
 			node := (*nodes)[i]
-			config[node.ID] = &planner.CreateClusterNodeOpts{ReplicationTarget: replicationTarget.ID}
+			config[node.ID] = &planner.CreateClusterNodeOpts{ReplicationTarget: replicationTarget.ID, Addr: node.Addr}
 		}
 	}
 

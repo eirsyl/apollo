@@ -22,6 +22,7 @@ type ClusterNeighbour struct {
 // Node represents an member of the cluster.
 type Node struct {
 	ID              string                      `json:"id"`
+	Addr            string                      `json:"addr"`
 	IsEmpty         bool                        `json:"isEmpty"`
 	MySelf          ClusterNeighbour            `json:"myself"`
 	Nodes           map[string]ClusterNeighbour `json:"nodes"`
@@ -91,6 +92,7 @@ func NewNodeFromPb(node *pb.StateRequest) (*Node, error) {
 
 	return &Node{
 		ID:              myself.ID,
+		Addr:            node.Addr,
 		IsEmpty:         node.IsEmpty,
 		MySelf:          myself,
 		Nodes:           nodes,

@@ -101,7 +101,9 @@ func (c *Command) UpdateStatus(status commandStatus) {
 
 // ReportResult is used to set the execution result of the task
 func (c *Command) ReportResult(cr *CommandResult) {
-	c.Status = CommandFinished
+	if cr.Success {
+		c.Status = CommandFinished
+	}
 }
 
 // CommandResult stores a execution of a command on a node

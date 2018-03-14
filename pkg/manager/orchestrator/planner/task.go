@@ -65,8 +65,8 @@ func (t *Task) NextCommands(nodeID string) ([]*Command, error) {
 				commands = append(commands, command)
 			} else {
 				available := true
-				for _, command := range command.Dependencies {
-					if command.Status != CommandFinished {
+				for _, c := range command.Dependencies {
+					if c.Status != CommandFinished {
 						available = false
 						break
 					}

@@ -7,6 +7,7 @@ import (
 
 	"strconv"
 
+	"github.com/eirsyl/apollo/pkg/utils"
 	goRedis "github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 )
@@ -172,6 +173,32 @@ func (c *Client) ClusterNodes() ([]ClusterNode, error) {
 	}
 
 	return nodes, nil
+}
+
+// AddSlots marks the redis instance responsible for a list if slots.
+func (c *Client) AddSlots(slots []int) (string, error) {
+	log.Infof("Adding cluster slots: %v", slots)
+	return c.redis.ClusterAddSlots(slots...).Result()
+}
+
+// JoinCluster
+func (c *Client) JoinCluster(addr string) (string, error) {
+	log.Infof("Joining cluster: %v", addr)
+	host, p := utils.GetHostPort(addr)
+	port := strconv.Itoa(p)
+	return c.redis.ClusterMeet(host, port).Result()
+}
+
+// Replicate configures a slave to replicate a master
+func (c *Client) Replicate(nodeID string) (string, error) {
+	log.Infof("Setting replication target: %v", nodeID)
+	return c.redis.ClusterReplicate(nodeID).Result()
+}
+
+// SetEpoch configures node cluster epoch
+func (c *Client) SetEpoch(epoch int) (string, error) {
+	log.Infof("Setting cluster epoch: %v", epoch)
+	return "", nil
 }
 
 /*

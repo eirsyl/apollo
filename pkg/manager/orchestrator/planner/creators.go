@@ -1,6 +1,8 @@
 package planner
 
 import (
+	"strconv"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,8 +18,10 @@ type CreateClusterNodeOpts struct {
 // the commands required to form a cluster.
 func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) error {
 
-	// Assign slots and replicate nodes
-	roleAssignments := []*Command{}
+	// Assign slots
+	slotAssignments := []*Command{}
+	replicationAssignments := []*Command{}
+
 	for nodeID, config := range opts {
 		co := *NewCommandOpts()
 		var command *Command
@@ -26,15 +30,18 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 		if config.ReplicationTarget != "" {
 			co.AddKS("target", config.ReplicationTarget)
 			command, err = NewCommand(nodeID, CommandSetReplicate, co, nil)
+			if err != nil {
+				return err
+			}
+			replicationAssignments = append(replicationAssignments, command)
 		} else {
 			co.AddKIL("slots", config.Slots)
 			command, err = NewCommand(nodeID, CommandAddSlots, co, nil)
+			if err != nil {
+				return err
+			}
+			slotAssignments = append(slotAssignments, command)
 		}
-
-		if err != nil {
-			return err
-		}
-		roleAssignments = append(roleAssignments, command)
 	}
 
 	// Set epochs
@@ -42,9 +49,9 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 	epoch := 1
 	for nodeID := range opts {
 		co := *NewCommandOpts()
-		co.AddKS("epoch", string(epoch))
+		co.AddKS("epoch", strconv.Itoa(epoch))
 		epoch++
-		command, err := NewCommand(nodeID, CommandSetEpoch, co, roleAssignments)
+		command, err := NewCommand(nodeID, CommandSetEpoch, co, slotAssignments)
 		if err != nil {
 			return err
 		}
@@ -53,26 +60,31 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 
 	// Join cluster command
 	clusterJoin := []*Command{}
-	lastNode := ""
+	lastAddr := ""
 	for nodeID, config := range opts {
-		if lastNode == "" {
-			lastNode = nodeID
+		if lastAddr == "" {
+			lastAddr = config.Addr
 			continue
 		}
 
 		co := *NewCommandOpts()
-		co.AddKS("node", config.Addr)
+		co.AddKS("node", lastAddr)
 		command, err := NewCommand(nodeID, CommandJoinCluster, co, epochAssignements)
 		if err != nil {
 			return err
 		}
 		clusterJoin = append(clusterJoin, command)
 
-		lastNode = nodeID
+		lastAddr = config.Addr
 	}
 
-	commands := append(roleAssignments, epochAssignements...)
+	for _, command := range replicationAssignments {
+		command.Dependencies = clusterJoin
+	}
+
+	commands := append(slotAssignments, epochAssignements...)
 	commands = append(commands, clusterJoin...)
+	commands = append(commands, replicationAssignments...)
 
 	createClusterTask, err := NewTask(TaskCreateCluster, commands)
 	if err != nil {

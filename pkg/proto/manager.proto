@@ -13,6 +13,7 @@ message StateRequest {
     repeated ClusterNode nodes = 2;
     repeated HostAnnotation hostAnnotations = 3;
     repeated NodeMetric metrics = 4;
+    string addr = 5;
 }
 
 message StateResponse {

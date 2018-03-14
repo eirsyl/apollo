@@ -6,6 +6,8 @@ import (
 
 	"errors"
 
+	"strconv"
+
 	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/agent/redis"
 	pb "github.com/eirsyl/apollo/pkg/api"
@@ -184,6 +186,7 @@ func (r *ReconciliationLoop) reportInstanceState() error {
 		Nodes:           *transformNodes(&nodes),
 		HostAnnotations: *transformHostAnnotations(&r.hostAnnotations),
 		Metrics:         *transformMetrics(&metricsChan),
+		Addr:            r.redis.GetAddr(),
 	}
 
 	var resultChan = make(chan error, 1)
@@ -251,8 +254,22 @@ func (r *ReconciliationLoop) performActions(commands []*contrib.NodeCommand) ([]
 
 	for _, command := range commands {
 		log.Infof("Running command: %v %v", command.ID, command.Command)
-		// TODO: Run the actual command and construct a command result
-		result, err := contrib.NewNodeCommandResult(command.ID, []string{}, true)
+		var result *contrib.NodeCommandResult
+		var err error
+
+		switch command.Command {
+		case contrib.CommandAddSlots:
+			result, err = r.addSlots(command)
+		case contrib.CommandSetReplicate:
+			result, err = r.setReplication(command)
+		case contrib.CommandSetEpoch:
+			result, err = r.setEpoch(command)
+		case contrib.CommandJoinCluster:
+			result, err = r.joinCluster(command)
+		default:
+			log.Warnf("Agent received unsupported command: %v %v", command.ID, command.Command)
+			result, err = contrib.NewNodeCommandResult(command.ID, []string{"UNSUPPORTED COMMAND"}, false)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -322,4 +339,72 @@ func (r *ReconciliationLoop) Shutdown() error {
 		}
 	}()
 	return nil
+}
+
+/**
+ * Private cluster commands and helper utils
+ */
+func (r *ReconciliationLoop) addSlots(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	c := *command
+	var slots []int
+	for _, s := range c.Arguments {
+		slot, err := strconv.Atoi(s)
+		if err != nil {
+			log.Warnf("Invalid slot value: %v", s)
+		}
+		slots = append(slots, slot)
+	}
+
+	res, err := r.redis.AddSlots(slots)
+	if err != nil {
+		log.Warnf("Redis error: %v", err)
+	}
+
+	return contrib.NewNodeCommandResult(c.ID, []string{res}, err == nil)
+}
+
+func (r *ReconciliationLoop) setReplication(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	c := *command
+	if len(c.Arguments) != 1 {
+		log.Warnf("Cannot set replication without a replication target")
+		return contrib.NewNodeCommandResult(c.ID, []string{"INVALID REPLICATION TARGET"}, false)
+	}
+	res, err := r.redis.Replicate(c.Arguments[0])
+	if err != nil {
+		log.Warnf("Redis error: %v", err)
+	}
+	return contrib.NewNodeCommandResult(c.ID, []string{res}, err == nil)
+}
+
+func (r *ReconciliationLoop) setEpoch(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	c := *command
+	if len(c.Arguments) != 1 {
+		log.Warn("Cannot set epoch without a epoch value")
+		return contrib.NewNodeCommandResult(c.ID, []string{"INVALID EPOCH"}, false)
+	}
+	e := c.Arguments[0]
+	epoch, err := strconv.Atoi(e)
+	if err != nil {
+		log.Warnf("Received invalid epoch value: %v %v", epoch, err)
+		return contrib.NewNodeCommandResult(c.ID, []string{"INVALID EPOCH"}, false)
+	}
+	res, err := r.redis.SetEpoch(epoch)
+	if err != nil {
+		log.Warnf("Redis error: %v", err)
+	}
+	return contrib.NewNodeCommandResult(c.ID, []string{res}, err == nil)
+}
+
+func (r *ReconciliationLoop) joinCluster(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	c := *command
+	if len(c.Arguments) != 1 {
+		log.Warn("Cannot join cluster without a node address")
+		return contrib.NewNodeCommandResult(c.ID, []string{"INVALID NODE ID"}, false)
+	}
+	res, err := r.redis.JoinCluster(c.Arguments[0])
+	if err != nil {
+		log.Warnf("Redis error: %v", err)
+	}
+	time.Sleep(5 * time.Second)
+	return contrib.NewNodeCommandResult(c.ID, []string{res}, err == nil)
 }
