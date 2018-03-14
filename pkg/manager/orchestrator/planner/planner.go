@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // Planner is responsible for storing the plans that the cluster manager plans to
@@ -32,27 +33,23 @@ func (p *Planner) CurrentTask() (*Task, error) {
 	return nil, nil
 }
 
-// NextCommand sends the next command to be executed by a node
-func (p *Planner) NextCommands(nodeID string, updateTaskState bool) ([]*Command, error) {
+// NextCommands sends the next command to be executed by a node
+func (p *Planner) NextCommands(nodeID string) (*Task, []*Command, error) {
 	task, err := p.CurrentTask()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if task == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	commands, err := task.NextCommands(nodeID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if updateTaskState {
-		task.UpdateStatus()
-	}
-
-	return commands, nil
+	return task, commands, nil
 }
 
 // ReportResult saves a execution result from a node
@@ -63,10 +60,9 @@ func (p *Planner) ReportResult(nodeID string, results []*CommandResult) error {
 	}
 
 	p.lock.Lock()
-	defer p.lock.Unlock()
-
 	for _, task := range p.tasks {
 		if task.Status == StatusWaiting || task.Status == StatusExecuted {
+			log.Infof("Skipping task, task not active: %v", task.Type)
 			continue
 		}
 
@@ -77,9 +73,15 @@ func (p *Planner) ReportResult(nodeID string, results []*CommandResult) error {
 			}
 
 			command.ReportResult(result)
+			delete(cr, command.ID)
 		}
 
 		task.UpdateStatus()
+	}
+	p.lock.Unlock()
+
+	for commandID := range cr {
+		log.Warnf("Unable to store command result for task: %v", commandID)
 	}
 
 	return nil

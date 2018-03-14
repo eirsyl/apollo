@@ -200,7 +200,8 @@ func (c *Cluster) ReportState(node *pb.StateRequest) error {
 // NextExecution sends the next command to a node. The planner returns a command if
 // a step is planned by the manager.
 func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*pb.NextExecutionResponse, error) {
-	nextCommands, err := c.planner.NextCommands(req.NodeID, true)
+	task, nextCommands, err := c.planner.NextCommands(req.NodeID)
+
 	if err != nil {
 		return nil, err
 	}
@@ -231,6 +232,10 @@ func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*pb.NextExecution
 			Command:   command.Type.Int64(),
 			Arguments: arguments,
 		})
+	}
+
+	if task != nil {
+		(*task).UpdateStatus()
 	}
 
 	return &pb.NextExecutionResponse{

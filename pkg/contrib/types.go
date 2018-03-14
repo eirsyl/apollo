@@ -6,7 +6,7 @@ import "errors"
 type Command int
 
 const (
-	// AddSlotsCommand is used to assign slots to a node
+	// CommandAddSlots is used to assign slots to a node
 	CommandAddSlots Command = 1
 	// CommandSetReplicate represents the command used to set replication on a slave
 	CommandSetReplicate Command = 2
@@ -18,7 +18,7 @@ const (
 
 // NodeCommand stores a command that the manager issues to an agent
 type NodeCommand struct {
-	Id        string
+	ID        string
 	Command   Command
 	Arguments []string
 }
@@ -40,7 +40,7 @@ func NewNodeCommand(id string, command int64, arguments []string) (*NodeCommand,
 	}
 
 	return &NodeCommand{
-		Id:        id,
+		ID:        id,
 		Command:   commandType,
 		Arguments: arguments,
 	}, nil
@@ -48,7 +48,7 @@ func NewNodeCommand(id string, command int64, arguments []string) (*NodeCommand,
 
 // NodeCommandResult stores the result of a command execution, used to report result to the manager
 type NodeCommandResult struct {
-	Id      string
+	ID      string
 	Result  []string
 	Success bool
 }
@@ -56,7 +56,7 @@ type NodeCommandResult struct {
 // NewNodeCommandResult creates a new NodeCommandResult
 func NewNodeCommandResult(id string, result []string, success bool) (*NodeCommandResult, error) {
 	return &NodeCommandResult{
-		Id:      id,
+		ID:      id,
 		Result:  result,
 		Success: success,
 	}, nil

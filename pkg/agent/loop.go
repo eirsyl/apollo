@@ -250,9 +250,9 @@ func (r *ReconciliationLoop) performActions(commands []*contrib.NodeCommand) ([]
 	var results []*contrib.NodeCommandResult
 
 	for _, command := range commands {
-		log.Infof("Running command: %v %v", command.Id, command.Command)
+		log.Infof("Running command: %v %v", command.ID, command.Command)
 		// TODO: Run the actual command and construct a command result
-		result, err := contrib.NewNodeCommandResult(command.Id, []string{}, true)
+		result, err := contrib.NewNodeCommandResult(command.ID, []string{}, true)
 		if err != nil {
 			return nil, err
 		}
@@ -266,9 +266,9 @@ func (r *ReconciliationLoop) reportResults(results []*contrib.NodeCommandResult)
 	var cm []*pb.ExecutionResult
 
 	for _, result := range results {
-		log.Infof("Sending command result for task: %v", result.Id)
+		log.Infof("Sending command result for task: %v", result.ID)
 		cm = append(cm, &pb.ExecutionResult{
-			Id:      result.Id,
+			Id:      result.ID,
 			Result:  result.Result,
 			Success: result.Success,
 		})
@@ -279,11 +279,8 @@ func (r *ReconciliationLoop) reportResults(results []*contrib.NodeCommandResult)
 		CommandResults: cm,
 	}
 	_, err := r.client.ReportExecutionResult(context.Background(), &request)
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func (r *ReconciliationLoop) collectScrape() {

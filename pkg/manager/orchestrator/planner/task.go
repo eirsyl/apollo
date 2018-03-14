@@ -46,7 +46,7 @@ func NewTask(t taskType, commands []*Command) (*Task, error) {
 	return task, nil
 }
 
-// NextCommand returns the next command to be executed by a node with the provided NodeID
+// NextCommands returns the next command to be executed by a node with the provided NodeID
 func (t *Task) NextCommands(nodeID string) ([]*Command, error) {
 	commands := []*Command{}
 
@@ -86,6 +86,7 @@ func (t *Task) UpdateStatus() {
 	status := StatusWaiting
 	allFinished := true
 
+L:
 	for _, command := range t.Commands {
 		switch command.Status {
 		case CommandWaiting:
@@ -94,12 +95,17 @@ func (t *Task) UpdateStatus() {
 		case CommandRunning:
 			allFinished = false
 			status = StatusExecuting
-			break
+			break L
 		}
 	}
 
 	if allFinished {
 		status = StatusExecuted
+	}
+
+	if status == StatusWaiting && t.Status != StatusWaiting {
+		// Don't change the status back to waiting if marked as started.
+		return
 	}
 
 	if status != t.Status {
