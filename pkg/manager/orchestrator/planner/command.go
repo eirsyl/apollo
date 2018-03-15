@@ -76,6 +76,7 @@ type Command struct {
 	Execution    time.Time
 	Retries      int64
 	Dependencies []*Command
+	Results      [][]string
 }
 
 // NewCommand creates a new command
@@ -91,12 +92,21 @@ func NewCommand(nodeID string, ct commandType, opts CommandOpts, dependencies []
 		Status:       CommandWaiting,
 		Creation:     time.Now().UTC(),
 		Dependencies: dependencies,
+		Results:      [][]string{},
 	}, nil
 }
 
 // UpdateStatus changes the command status
 func (c *Command) UpdateStatus(status commandStatus) {
+	if c.Status == CommandRunning && status == CommandRunning {
+		c.IncrementRetry()
+	}
+
 	c.Status = status
+
+	if c.Status == CommandRunning {
+		c.Execution = time.Now().UTC()
+	}
 }
 
 // ReportResult is used to set the execution result of the task
@@ -104,6 +114,12 @@ func (c *Command) ReportResult(cr *CommandResult) {
 	if cr.Success {
 		c.Status = CommandFinished
 	}
+	c.Results = append(c.Results, cr.Result)
+}
+
+// IncrementRetry increments the retry counter
+func (c *Command) IncrementRetry() {
+	c.Retries++
 }
 
 // CommandResult stores a execution of a command on a node
