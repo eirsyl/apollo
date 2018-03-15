@@ -181,7 +181,7 @@ func (c *Client) AddSlots(slots []int) (string, error) {
 	return c.redis.ClusterAddSlots(slots...).Result()
 }
 
-// JoinCluster
+// JoinCluster sends the cluster meet command
 func (c *Client) JoinCluster(addr string) (string, error) {
 	log.Infof("Joining cluster: %v", addr)
 	host, p := utils.GetHostPort(addr)

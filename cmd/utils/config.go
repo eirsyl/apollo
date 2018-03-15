@@ -1,14 +1,16 @@
-package cmd
+package utils
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func stringConfig(cmd *cobra.Command, name, short, value, description string) {
+// StringConfig adds a string flag to a cli
+func StringConfig(cmd *cobra.Command, name, short, value, description string) {
 	cmd.PersistentFlags().StringP(name, short, value, description)
 	err := viper.BindPFlag(name, cmd.PersistentFlags().Lookup(name))
 	if err != nil {
@@ -20,7 +22,8 @@ func stringConfig(cmd *cobra.Command, name, short, value, description string) {
 	}
 }
 
-func boolConfig(cmd *cobra.Command, name, short string, value bool, description string) {
+// BoolConfig adds a bool flag to a cli
+func BoolConfig(cmd *cobra.Command, name, short string, value bool, description string) {
 	cmd.PersistentFlags().BoolP(name, short, value, description)
 	err := viper.BindPFlag(name, cmd.PersistentFlags().Lookup(name))
 	if err != nil {

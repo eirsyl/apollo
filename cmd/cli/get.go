@@ -1,15 +1,9 @@
 package cli
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/eirsyl/apollo/cmd/cli/get"
+)
 
 func init() {
-	CLICmd.AddCommand(getCmd)
-}
-
-var getCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Display one or many resources",
-	Run: func(cmd *cobra.Command, args []string) {
-
-	},
+	CLICmd.AddCommand(get.GetCmd)
 }

@@ -12,7 +12,18 @@ import (
 )
 
 type clusterState int
+
+// Int64 returns the value as a int64
+func (cs *clusterState) Int64() int64 {
+	return int64(*cs)
+}
+
 type clusterHealth int
+
+// Int64 returns the value as a int64
+func (cs *clusterHealth) Int64() int64 {
+	return int64(*cs)
+}
 
 const (
 	clusterUnknown      clusterState = 0

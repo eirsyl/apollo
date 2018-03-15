@@ -7,21 +7,22 @@ import (
 	"syscall"
 	"time"
 
+	cliUtils "github.com/eirsyl/apollo/cmd/utils"
 	"github.com/eirsyl/apollo/pkg/agent"
 	"github.com/eirsyl/apollo/pkg/runtime"
-	"github.com/eirsyl/apollo/pkg/utils"
 
+	"github.com/eirsyl/apollo/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 func init() {
-	stringConfig(agentCmd, "redis", "r", "127.0.0.1:6379", "redis instance that the agent should manage")
-	stringConfig(agentCmd, "manager", "m", "127.0.0.1:8080", "manager instance that the agent should report to")
-	stringConfig(agentCmd, "hostAnnotations", "", "", "host annotations is used to group nodes into different failure domains. Example dc=eu-central-1 vpc=prod01")
-	boolConfig(agentCmd, "managerTLS", "", true, "use tls when connecting to the manager")
-	boolConfig(agentCmd, "skip-prechecks", "", false, "skip prechecks at startup")
+	cliUtils.StringConfig(agentCmd, "redis", "r", "127.0.0.1:6379", "redis instance that the agent should manage")
+	cliUtils.StringConfig(agentCmd, "manager", "m", "127.0.0.1:8080", "manager instance that the agent should report to")
+	cliUtils.StringConfig(agentCmd, "hostAnnotations", "", "", "host annotations is used to group nodes into different failure domains. Example dc=eu-central-1 vpc=prod01")
+	cliUtils.BoolConfig(agentCmd, "managerTLS", "", true, "use tls when connecting to the manager")
+	cliUtils.BoolConfig(agentCmd, "skip-prechecks", "", false, "skip prechecks at startup")
 	RootCmd.AddCommand(agentCmd)
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"time"
 
+	cliUtils "github.com/eirsyl/apollo/cmd/utils"
 	"github.com/eirsyl/apollo/pkg/manager"
 	"github.com/eirsyl/apollo/pkg/runtime"
 	"github.com/eirsyl/apollo/pkg/utils"
@@ -17,11 +18,11 @@ import (
 )
 
 func init() {
-	stringConfig(managerCmd, "managerAddr", "", ":8080", "manger listen address")
-	stringConfig(managerCmd, "debugAddr", "", ":8081", "debug server listen address")
-	stringConfig(managerCmd, "databaseFile", "", "apollo.db", "database path for internal state")
-	stringConfig(managerCmd, "replication", "", "3", "the replication factor the manager should try to fulfill")
-	stringConfig(managerCmd, "minNodesCreate", "", "0", "require minimum x online nodes before cluster initialization")
+	cliUtils.StringConfig(managerCmd, "managerAddr", "", ":8080", "manger listen address")
+	cliUtils.StringConfig(managerCmd, "debugAddr", "", ":8081", "debug server listen address")
+	cliUtils.StringConfig(managerCmd, "databaseFile", "", "apollo.db", "database path for internal state")
+	cliUtils.StringConfig(managerCmd, "replication", "", "3", "the replication factor the manager should try to fulfill")
+	cliUtils.StringConfig(managerCmd, "minNodesCreate", "", "0", "require minimum x online nodes before cluster initialization")
 	RootCmd.AddCommand(managerCmd)
 }
 

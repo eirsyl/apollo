@@ -9,6 +9,8 @@ It is generated from these files:
 	manager.proto
 
 It has these top-level messages:
+	EmptyMessage
+	StatusResponse
 	StateRequest
 	StateResponse
 	NextExecutionRequest
@@ -43,6 +45,43 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+type EmptyMessage struct {
+}
+
+func (m *EmptyMessage) Reset()                    { *m = EmptyMessage{} }
+func (m *EmptyMessage) String() string            { return proto.CompactTextString(m) }
+func (*EmptyMessage) ProtoMessage()               {}
+func (*EmptyMessage) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
+type StatusResponse struct {
+	Health int64 `protobuf:"varint,1,opt,name=health" json:"health,omitempty"`
+	State  int64 `protobuf:"varint,2,opt,name=state" json:"state,omitempty"`
+}
+
+func (m *StatusResponse) Reset()                    { *m = StatusResponse{} }
+func (m *StatusResponse) String() string            { return proto.CompactTextString(m) }
+func (*StatusResponse) ProtoMessage()               {}
+func (*StatusResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+
+func (m *StatusResponse) GetHealth() int64 {
+	if m != nil {
+		return m.Health
+	}
+	return 0
+}
+
+func (m *StatusResponse) GetState() int64 {
+	if m != nil {
+		return m.State
+	}
+	return 0
+}
+
+func init() {
+	proto.RegisterType((*EmptyMessage)(nil), "api.EmptyMessage")
+	proto.RegisterType((*StatusResponse)(nil), "api.StatusResponse")
+}
+
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
 var _ grpc.ClientConn
@@ -54,6 +93,7 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for CLI service
 
 type CLIClient interface {
+	Status(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*StatusResponse, error)
 }
 
 type cLIClient struct {
@@ -64,29 +104,67 @@ func NewCLIClient(cc *grpc.ClientConn) CLIClient {
 	return &cLIClient{cc}
 }
 
+func (c *cLIClient) Status(ctx context.Context, in *EmptyMessage, opts ...grpc.CallOption) (*StatusResponse, error) {
+	out := new(StatusResponse)
+	err := grpc.Invoke(ctx, "/api.CLI/Status", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for CLI service
 
 type CLIServer interface {
+	Status(context.Context, *EmptyMessage) (*StatusResponse, error)
 }
 
 func RegisterCLIServer(s *grpc.Server, srv CLIServer) {
 	s.RegisterService(&_CLI_serviceDesc, srv)
 }
 
+func _CLI_Status_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CLIServer).Status(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.CLI/Status",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CLIServer).Status(ctx, req.(*EmptyMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _CLI_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "api.CLI",
 	HandlerType: (*CLIServer)(nil),
-	Methods:     []grpc.MethodDesc{},
-	Streams:     []grpc.StreamDesc{},
-	Metadata:    "cli.proto",
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Status",
+			Handler:    _CLI_Status_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "cli.proto",
 }
 
 func init() { proto.RegisterFile("cli.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 52 bytes of a gzipped FileDescriptorProto
+	// 143 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4c, 0xce, 0xc9, 0xd4,
-	0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x34, 0x62, 0xe5, 0x62, 0x76, 0xf6,
-	0xf1, 0x4c, 0x62, 0x03, 0x0b, 0x19, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff, 0xca, 0x91, 0x83, 0xc0,
-	0x1f, 0x00, 0x00, 0x00,
+	0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x54, 0xe2, 0xe3, 0xe2, 0x71, 0xcd,
+	0x2d, 0x28, 0xa9, 0xf4, 0x4d, 0x2d, 0x2e, 0x4e, 0x4c, 0x4f, 0x55, 0xb2, 0xe3, 0xe2, 0x0b, 0x2e,
+	0x49, 0x2c, 0x29, 0x2d, 0x0e, 0x4a, 0x2d, 0x2e, 0xc8, 0xcf, 0x2b, 0x4e, 0x15, 0x12, 0xe3, 0x62,
+	0xcb, 0x48, 0x4d, 0xcc, 0x29, 0xc9, 0x90, 0x60, 0x54, 0x60, 0xd4, 0x60, 0x0e, 0x82, 0xf2, 0x84,
+	0x44, 0xb8, 0x58, 0x8b, 0x4b, 0x12, 0x4b, 0x52, 0x25, 0x98, 0xc0, 0xc2, 0x10, 0x8e, 0x91, 0x25,
+	0x17, 0xb3, 0xb3, 0x8f, 0xa7, 0x90, 0x11, 0x17, 0x1b, 0xc4, 0x18, 0x21, 0x41, 0xbd, 0xc4, 0x82,
+	0x4c, 0x3d, 0x64, 0x3b, 0xa4, 0x84, 0xc1, 0x42, 0xa8, 0xd6, 0x28, 0x31, 0x24, 0xb1, 0x81, 0x9d,
+	0x65, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff, 0x56, 0xc8, 0x05, 0x0c, 0xa3, 0x00, 0x00, 0x00,
 }

@@ -43,6 +43,7 @@ func NewServer(managerAddr string, db *bolt.DB, replication, minNodesCreate int)
 
 	log.Info("Initializing orchestrator server")
 	pb.RegisterManagerServer(server, manager)
+	pb.RegisterCLIServer(server, manager)
 
 	return manager, nil
 }
@@ -67,6 +68,10 @@ func (s *Server) Shutdown() error {
 	return nil
 }
 
+/**
+ * Manager GRPC
+ */
+
 // ReportState grpc endpoint
 func (s *Server) ReportState(ctx context.Context, req *pb.StateRequest) (*pb.StateResponse, error) {
 	err := s.cluster.ReportState(req)
@@ -89,4 +94,17 @@ func (s *Server) ReportExecutionResult(ctx context.Context, req *pb.ReportExecut
 	}
 
 	return &pb.ReportExecutionResponse{}, nil
+}
+
+/**
+ * CLI GRPC
+ */
+
+// Status sends the cluster status to the cli client
+func (s *Server) Status(context.Context, *pb.EmptyMessage) (*pb.StatusResponse, error) {
+	status := pb.StatusResponse{
+		Health: s.cluster.health.Int64(),
+		State:  s.cluster.state.Int64(),
+	}
+	return &status, nil
 }
