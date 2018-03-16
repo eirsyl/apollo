@@ -193,7 +193,7 @@ func (c *Cluster) configureCluster() {
 
 // iteration watches the cluster after everything is configured and up an running
 func (c *Cluster) iteration() {
-	l := log.WithFields(log.Fields{"clusterHealth": c.health, "clusterState": c.state})
+	l := log.WithFields(log.Fields{"clusterHealth": HumanizeClusterHealth(c.health.Int64()), "clusterState": HumanizeClusterState(c.state.Int64())})
 	l.Info("Running iteration")
 
 	_, err := c.planner.CurrentTask()

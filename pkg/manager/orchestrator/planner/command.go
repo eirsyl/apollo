@@ -7,8 +7,15 @@ import (
 )
 
 type commandStatus int
+
+// Int64 returns the value as a int64
+func (cs *commandStatus) Int64() int64 {
+	return int64(*cs)
+}
+
 type commandType int
 
+// Int64 returns the value as a int64
 func (t *commandType) Int64() int64 {
 	return int64(*t)
 }

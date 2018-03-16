@@ -106,8 +106,14 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 
 // NewCheckClusterTask creates a task for cluster checks
 func (p *Planner) NewCheckClusterTask() error {
+	checkClusterTask, err := NewTask(TaskCheckCluster, []*Command{})
+	if err != nil {
+		return err
+	}
+
 	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.tasks = append(p.tasks, checkClusterTask)
+	p.lock.Unlock()
 
 	return nil
 }

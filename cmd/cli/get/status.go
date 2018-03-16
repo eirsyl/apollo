@@ -12,6 +12,7 @@ import (
 	pb "github.com/eirsyl/apollo/pkg/api"
 	"github.com/eirsyl/apollo/pkg/cli"
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator"
+	"github.com/eirsyl/apollo/pkg/manager/orchestrator/planner"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -43,12 +44,45 @@ var getStatusCmd = &cobra.Command{
 			}
 
 			status := tm.NewTable(0, 10, 5, ' ', 0)
-			fmt.Fprintf(status, "Manager\tHealth\tState\n")
-			fmt.Fprintf(status, "%s\t%s\t%s\n", manager, orchestrator.HumanizeClusterHealth(response.Health), orchestrator.HumanizeClusterState(response.State))
-			_, err = tm.Println(status)
-			if err != nil {
+			if _, err = fmt.Fprintf(status, "Manager\tHealth\tState\n"); err != nil {
 				return err
 			}
+			if _, err = fmt.Fprintf(status, "%s\t%s\t%s\n", manager, orchestrator.HumanizeClusterHealth(response.Health), orchestrator.HumanizeClusterState(response.State)); err != nil {
+				return err
+			}
+			if _, err = tm.Println(status); err != nil {
+				return err
+			}
+
+			tasks := tm.NewTable(0, 10, 5, ' ', 0)
+			commands := tm.NewTable(0, 10, 5, ' ', 0)
+
+			if _, err = fmt.Fprintf(tasks, "Task ID\tType\tStatus\n"); err != nil {
+				return err
+			}
+			if _, err = fmt.Fprintf(commands, "Task ID\tCommand ID\tType\tStatus\tNode\tRetries\tDependencies\n"); err != nil {
+				return err
+			}
+
+			for _, task := range response.Tasks {
+				if _, err = fmt.Fprintf(tasks, "%d\t%s\t%s\n", task.Id, planner.HumanizeTaskType(task.Type), planner.HumanizeTaskStatus(task.Status)); err != nil {
+					return err
+				}
+				for _, command := range task.Commands {
+					if _, err = fmt.Fprintf(commands, "%d\t%s\t%s\t%s\t%s\t%d\t%d\n", task.Id, command.Id, planner.HumanizeCommandType(command.Type), planner.HumanizeCommandStatus(command.Status), command.NodeID, command.Retries, command.Dependencies); err != nil {
+						return err
+					}
+				}
+			}
+
+			if _, err = tm.Println(tasks); err != nil {
+				return err
+			}
+
+			if _, err = tm.Println(commands); err != nil {
+				return err
+			}
+
 			tm.Flush()
 			return nil
 		}

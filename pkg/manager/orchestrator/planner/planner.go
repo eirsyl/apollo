@@ -3,6 +3,7 @@ package planner
 import (
 	"sync"
 
+	pb "github.com/eirsyl/apollo/pkg/api"
 	"github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -85,4 +86,33 @@ func (p *Planner) ReportResult(nodeID string, results []*CommandResult) error {
 	}
 
 	return nil
+}
+
+// StatusExport produces planner metrics to the protobuf interface (cli usage)
+func (p *Planner) StatusExport() ([]*pb.Task, error) {
+	var tasks []*pb.Task
+
+	p.lock.Lock()
+	for id, task := range p.tasks {
+		var commands []*pb.Command
+		for _, command := range task.Commands {
+			commands = append(commands, &pb.Command{
+				Id:           command.ID.String(),
+				Status:       command.Status.Int64(),
+				Type:         command.Type.Int64(),
+				NodeID:       command.NodeID,
+				Retries:      command.Retries,
+				Dependencies: int64(len(command.Dependencies)),
+			})
+		}
+		tasks = append(tasks, &pb.Task{
+			Id:       int64(id),
+			Status:   task.Status.Int64(),
+			Type:     task.Type.Int64(),
+			Commands: commands,
+		})
+	}
+	p.lock.Unlock()
+
+	return tasks, nil
 }

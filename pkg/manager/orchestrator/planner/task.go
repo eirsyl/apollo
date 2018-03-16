@@ -5,7 +5,18 @@ import (
 )
 
 type taskType int
+
+// Int64 returns the value as a int64
+func (cs *taskType) Int64() int64 {
+	return int64(*cs)
+}
+
 type taskStatus int
+
+// Int64 returns the value as a int64
+func (cs *taskStatus) Int64() int64 {
+	return int64(*cs)
+}
 
 var (
 	// TaskCreateCluster task is responsible for creating a cluster

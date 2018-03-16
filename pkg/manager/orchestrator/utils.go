@@ -10,7 +10,7 @@ func HumanizeClusterState(state int64) string {
 	case clusterConfigured:
 		return "Configured"
 	default:
-		return "NOT_SET"
+		return "ClusterState_NOT_SET"
 	}
 
 }
@@ -25,6 +25,6 @@ func HumanizeClusterHealth(health int64) string {
 	case clusterError:
 		return "Error"
 	default:
-		return "NOT_SET"
+		return "ClusterHealth_NOT_SET"
 	}
 }

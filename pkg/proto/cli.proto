@@ -11,4 +11,21 @@ message EmptyMessage {}
 message StatusResponse {
     int64 health = 1;
     int64 state = 2;
+    repeated Task tasks = 3;
+}
+
+message Task {
+    int64 id = 1;
+    int64 status = 2;
+    int64 type = 3;
+    repeated Command commands = 4;
+}
+
+message Command {
+    string id = 1;
+    int64 status = 2;
+    int64 type = 3;
+    string nodeID = 4;
+    int64 retries = 5;
+    int64 dependencies = 6;
 }

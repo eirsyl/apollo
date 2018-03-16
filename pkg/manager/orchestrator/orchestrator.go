@@ -102,9 +102,15 @@ func (s *Server) ReportExecutionResult(ctx context.Context, req *pb.ReportExecut
 
 // Status sends the cluster status to the cli client
 func (s *Server) Status(context.Context, *pb.EmptyMessage) (*pb.StatusResponse, error) {
+	tasks, err := s.cluster.planner.StatusExport()
+	if err != nil {
+		return nil, err
+	}
+
 	status := pb.StatusResponse{
 		Health: s.cluster.health.Int64(),
 		State:  s.cluster.state.Int64(),
+		Tasks:  tasks,
 	}
 	return &status, nil
 }
