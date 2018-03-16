@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/eirsyl/apollo/pkg"
 
+	"github.com/eirsyl/apollo/cmd/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -21,10 +23,12 @@ func init() {
 	}
 }
 
+var shortDescription = "Apollo is a cluster manager running as a sidecar in your Redis Cluster deployment."
+
 // RootCmd is the main entrypoint for the CLI application.
 var RootCmd = &cobra.Command{
 	Use:     "apollo",
-	Short:   "Apollo is a cluster manager running as a sidecar in your Redis Cluster deployment.",
+	Short:   shortDescription,
 	Version: fmt.Sprintf("%s %s", pkg.Version, pkg.BuildDate),
 	Long: `
 Apollo is a Redis Cluster manager that aims to lighten the operational burden
@@ -37,5 +41,8 @@ issues or reduced performance and tries to fix these in the best possible way.
 		} else {
 			log.SetLevel(log.InfoLevel)
 		}
+
+		utils.PrintHeader()
+		fmt.Printf("\n %s\n\n", shortDescription)
 	},
 }
