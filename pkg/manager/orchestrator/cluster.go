@@ -44,6 +44,7 @@ type Cluster struct {
 	db                 *bolt.DB
 	startTime          time.Time
 	planner            *planner.Planner
+	nodeManager        *nodeManager
 }
 
 // NewCluster creates a new cluster planner
@@ -62,6 +63,11 @@ func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, 
 		return nil, err
 	}
 
+	nm, err := newNodeManager(db)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Cluster{
 		state:              clusterUnknown,
 		health:             clusterError,
@@ -70,6 +76,7 @@ func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, 
 		db:                 db,
 		startTime:          time.Now().UTC(),
 		planner:            p,
+		nodeManager:        nm,
 	}, nil
 }
 
@@ -94,32 +101,19 @@ func (c *Cluster) Run() error {
 // findClusterConfiguration is responsible for trying to figure out if the cluster is configured or not
 func (c *Cluster) findClusterConfiguration() {
 	log.Info("Starting configuration detection")
-	nodes, err := nodeList(c.db)
+	nodes, err := c.nodeManager.onlineNodes()
 	if err != nil {
-		log.Warn("Could not retrieve nodes, skipping configuration detection: %v", err)
+		log.Infof("Could not retrieve online nodes from nodeManager: %v", err)
 		return
 	}
 
 	if len(nodes) < 3 {
-		log.Infof("Skipping configuration detection 3 or more nodes is required, current count: %d", len(nodes))
-		return
-	}
-
-	var onlineNodes = []Node{}
-	var latestAllowedObservation = time.Now().UTC().Add(-2 * time.Minute)
-	for _, node := range nodes {
-		if node.LastObservation.After(c.startTime) && node.LastObservation.After(latestAllowedObservation) {
-			onlineNodes = append(onlineNodes, node)
-		}
-	}
-	log.Infof("Total nodes: %d, online nodes: %d", len(nodes), len(onlineNodes))
-	if len(onlineNodes) < 3 {
 		log.Infof("Skipping configuration detection, minimum 3 nodes has to be online and reporting state.")
 		return
 	}
 
 	var onlineNodesEmpty = true
-	for _, node := range onlineNodes {
+	for _, node := range nodes {
 		if !node.IsEmpty {
 			onlineNodesEmpty = false
 			break
@@ -137,28 +131,20 @@ func (c *Cluster) findClusterConfiguration() {
 
 // configureCluster configures the redis nodes as a cluster if all the requirements is meet
 func (c *Cluster) configureCluster() {
-	nodes, err := nodeList(c.db)
+	nodes, err := c.nodeManager.onlineNodes()
 	if err != nil {
-		log.Warn("Could not retrieve nodes, skipping configuration detection: %v", err)
+		log.Infof("Could not retrieve online nodes from node manager: %v", err)
 		return
 	}
 
-	var onlineNodes = []Node{}
-	var latestAllowedObservation = time.Now().UTC().Add(-2 * time.Minute)
-	for _, node := range nodes {
-		if node.LastObservation.After(c.startTime) && node.LastObservation.After(latestAllowedObservation) {
-			onlineNodes = append(onlineNodes, node)
-		}
-	}
-
-	if len(onlineNodes) < c.minNodesCreate {
+	if len(nodes) < c.minNodesCreate {
 		log.Infof("Skipping cluster creation %d nodes is required", c.minNodesCreate)
 		return
 	}
 
 	log.Infof("Generating cluster creation plan")
 	var nodeIds []string
-	for _, node := range onlineNodes {
+	for _, node := range nodes {
 		nodeIds = append(nodeIds, node.ID)
 	}
 
@@ -169,13 +155,13 @@ func (c *Cluster) configureCluster() {
 	}
 
 	// Create the cluster creation task and update cluster state
-	err = setClusterNodes(c.db, nodeIds)
+	err = c.nodeManager.setClusterNodes(nodeIds)
 	if err != nil {
 		log.Warnf("Could not update cluster members: %v", err)
 		return
 	}
 
-	slots, err := allocSlots(&onlineNodes, c.desiredReplication)
+	slots, err := allocSlots(&nodes, c.desiredReplication)
 	if err != nil {
 		log.Warnf("Could not calculate slots: %v", err)
 	}
@@ -205,7 +191,12 @@ func (c *Cluster) iteration() {
 
 // ReportState collects the state from the reporting node
 func (c *Cluster) ReportState(node *pb.StateRequest) error {
-	return nodeStore(c.db, node)
+	n, err := NewNodeFromPb(node)
+	if err != nil {
+		return err
+	}
+
+	return c.nodeManager.updateNode(n)
 }
 
 // NextExecution sends the next command to a node. The planner returns a command if
