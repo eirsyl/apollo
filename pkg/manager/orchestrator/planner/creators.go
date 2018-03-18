@@ -2,8 +2,6 @@ package planner
 
 import (
 	"strconv"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // CreateClusterNodeOpts is used to provide extra data to the NewCreateClusterTask func.
@@ -93,26 +91,6 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 
 	p.lock.Lock()
 	p.tasks = append(p.tasks, createClusterTask)
-	p.lock.Unlock()
-
-	// Issue a check cluster task
-	err = p.NewCheckClusterTask()
-	if err != nil {
-		log.Warnf("Could not create cluster check task: %v", err)
-	}
-
-	return nil
-}
-
-// NewCheckClusterTask creates a task for cluster checks
-func (p *Planner) NewCheckClusterTask() error {
-	checkClusterTask, err := NewTask(TaskCheckCluster, []*Command{})
-	if err != nil {
-		return err
-	}
-
-	p.lock.Lock()
-	p.tasks = append(p.tasks, checkClusterTask)
 	p.lock.Unlock()
 
 	return nil

@@ -51,8 +51,15 @@ type Cluster struct {
 func NewCluster(desiredReplication, minNodesCreate int, db *bolt.DB) (*Cluster, error) {
 	// Create buckets
 	err := db.Update(func(tx *bolt.Tx) error {
-		_, err := tx.CreateBucketIfNotExists([]byte("nodes"))
-		return err
+		// Node info bucket
+		if _, err := tx.CreateBucketIfNotExists([]byte("nodes")); err != nil {
+			return err
+		}
+		// Cluster member bucket
+		if _, err := tx.CreateBucketIfNotExists([]byte("cluster")); err != nil {
+			return err
+		}
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -182,9 +189,17 @@ func (c *Cluster) iteration() {
 	l := log.WithFields(log.Fields{"clusterHealth": HumanizeClusterHealth(c.health.Int64()), "clusterState": HumanizeClusterState(c.state.Int64())})
 	l.Info("Running iteration")
 
-	_, err := c.planner.CurrentTask()
+	task, err := c.planner.CurrentTask()
 	if err != nil {
 		l.Infof("Planner error: %v", err)
+	}
+
+	if task == nil {
+		l.Info("No running task, initializing a cluster check")
+		c.checkCluster()
+	} else {
+		l.Info("Watching task execution: %s", planner.HumanizeTaskType(task.Type.Int64()))
+		c.watchTask(task)
 	}
 
 }
@@ -264,3 +279,110 @@ func (c *Cluster) ReportExecution(req *pb.ReportExecutionRequest) error {
 /**
  * Functions bellow this line is used to generate and manage cluster state
  */
+
+// checkCluster validates the cluster and executes new tasks if required
+func (c *Cluster) checkCluster() {
+	onlineNodes, clusterNodes, err := c.findClusterAndOnlineNodes()
+	if err != nil {
+		return
+	}
+
+	// Update manager state if the clusterNodes is unset for some reason
+	// One requirement: The cluster has to be clean and clusterMembers = onlineNodes
+	c.maybeSetClusterNodes(onlineNodes, clusterNodes)
+
+	// Check if cluster is consistent (All nodes have the same observation of members)
+	clusterMemberValid := c.validateClusterMembers(onlineNodes, clusterNodes)
+	if !clusterMemberValid {
+		// Fix node members
+		// Run fixup tasks and continue loop for now
+		c.health = clusterWarn
+		return
+	}
+
+	openSlotsValid := c.validateOpenSlots()
+	if !openSlotsValid {
+		// Fix open slots
+		c.health = clusterWarn
+		return
+	}
+
+	slotCoverageValid := c.validateSlotCoverage()
+	if !slotCoverageValid {
+		// fix slot allocation
+		c.health = clusterWarn
+		return
+	}
+
+	c.health = clusterOK
+	log.Info("Cluster healthy")
+}
+
+// watchTask watches task execution and tries to fix execution errors
+func (c *Cluster) watchTask(task *planner.Task) {
+	log.Infof("Watches task: %s (NOT IMPLEMENTED)", planner.HumanizeTaskType(task.Type.Int64()))
+}
+
+// findClusterAndOnlineNodes looks up online nodes and cluster members from db
+func (c *Cluster) findClusterAndOnlineNodes() (*[]Node, *[]string, error) {
+	clusterNodes, err := c.nodeManager.getClusterNodes()
+	if err != nil {
+		log.Warnf("Could get stored cluster nodes, finding nodes from cluster. %v", err)
+		clusterNodes = []string{}
+	}
+
+	onlineNodes, err := c.nodeManager.onlineNodes()
+	if err != nil {
+		log.Warnf("Could not retrieve online nodes, loop continues: %v", err)
+		return nil, nil, err
+	}
+
+	return &onlineNodes, &clusterNodes, nil
+}
+
+// maybeClusterNodes sets the clusterNodes if it is unset and the cluster is clean
+func (c *Cluster) maybeSetClusterNodes(onlineNodes *[]Node, clusterNodes *[]string) {
+	discoveredNodeIds, clean, err := findClusterNodes(onlineNodes)
+	if err != nil {
+		log.Warnf("Could not find cluster nodes: %v", err)
+		return
+	}
+
+	if !clean {
+		log.Warnf("Cluster is not clean, nodes report different cluster members, skipping clusterNode config")
+		return
+	}
+
+	if clean && len(*clusterNodes) == 0 {
+		log.Info("Cluster nodes is empty, forcing update")
+		err := c.nodeManager.setClusterNodes(discoveredNodeIds)
+		if err != nil {
+			log.Warnf("Could not update cluster members: %v", err)
+		} else {
+			*clusterNodes = discoveredNodeIds
+		}
+	}
+}
+
+// validateClusterMembers validates the node cluster membership state
+func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]string) bool {
+	// onlineNodes: Nodes with an agent that pushes metrics and fetches tasks
+	// clusterNodes: Nodes that the manager consider as cluster members
+
+	// TODO: Validate node configuration
+	// Validate the nodes that actually is a member of the cluster
+	// Detect nodes that want to become a member if the cluster
+	// Splits or multiple clusters?
+	// Is a node agent offline?
+	return true
+}
+
+// validateOpenSlots checks if the cluster has open slots
+func (c *Cluster) validateOpenSlots() bool {
+	return true
+}
+
+// validateSlotCoverage validates the slot coverage (Each slot need a responsible node)
+func (c *Cluster) validateSlotCoverage() bool {
+	return true
+}

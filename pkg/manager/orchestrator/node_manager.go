@@ -92,6 +92,33 @@ func (nm *nodeManager) allNodes() (map[string]Node, error) {
 /**
  * Cluster Status
  */
+
+// setClusterNodes resets all the cluster nodes
 func (nm *nodeManager) setClusterNodes(nodeIds []string) error {
-	return nil
+	return nm.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("cluster"))
+
+		buf, err := json.Marshal(nodeIds)
+		if err != nil {
+			return err
+		}
+
+		return b.Put([]byte("clusterNodes"), buf)
+	})
+}
+
+// getClusterNodes returns the list of configured cluster members
+func (nm *nodeManager) getClusterNodes() ([]string, error) {
+	var nodeIds []string
+
+	err := nm.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("cluster"))
+		return json.Unmarshal(b.Get([]byte("clusterNodes")), &nodeIds)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return nodeIds, nil
 }
