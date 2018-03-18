@@ -8,4 +8,5 @@ apollo
 /test/coverage.*
 
 apollo.db
-nodes.conf
+cluster/*.conf
+cluster/*.rdb
