@@ -1,9 +1,10 @@
 package utils
 
-import "github.com/common-nighthawk/go-figure"
+import (
+	"fmt"
+)
 
 // PrintHeader writes the CLI header to the terminal
 func PrintHeader() {
-	logo := figure.NewFigure("apollo", "", true)
-	logo.Print()
+	fmt.Print("                   _ _       \r\n  __ _ _ __   ___ | | | ___  \r\n / _` | '_ \\ / _ \\| | |/ _ \\ \r\n| (_| | |_) | (_) | | | (_) |\r\n \\__,_| .__/ \\___/|_|_|\\___/ \r\n      |_|                    \n")
 }

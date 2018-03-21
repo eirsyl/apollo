@@ -14,12 +14,6 @@
   revision = "c9def0117b24a53e86f6c4c942e4042090a4fe8c"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/common-nighthawk/go-figure"
-  packages = ["."]
-  revision = "2d3c686981b48f9d6022181dc810381325b16b24"
-
-[[projects]]
   name = "github.com/coreos/bbolt"
   packages = ["."]
   revision = "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
@@ -307,6 +301,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "eda69b85bb8c32cbbd526f00dfb3ee2546f51d62a274606e934c6f459755f9ea"
+  inputs-digest = "81b02aa2369f7ca8428db19350da3c179ef4b15ba110fb5bf07dee990072e1bd"
   solver-name = "gps-cdcl"
   solver-version = 1

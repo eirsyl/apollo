@@ -198,7 +198,7 @@ func (c *Cluster) iteration() {
 		l.Info("No running task, initializing a cluster check")
 		c.checkCluster()
 	} else {
-		l.Info("Watching task execution: %s", planner.HumanizeTaskType(task.Type.Int64()))
+		l.Infof("Watching task execution: %s", planner.HumanizeTaskType(task.Type.Int64()))
 		c.watchTask(task)
 	}
 
