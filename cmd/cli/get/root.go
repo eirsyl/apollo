@@ -1,10 +1,8 @@
 package get
 
-import "github.com/spf13/cobra"
-
-func init() {
-
-}
+import (
+	"github.com/spf13/cobra"
+)
 
 // GetCmd is the main cmd entrypoint for the get
 var GetCmd = &cobra.Command{

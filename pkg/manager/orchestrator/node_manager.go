@@ -38,7 +38,6 @@ func (nm *nodeManager) updateNode(node *Node) error {
 // onlineNodes returns a list of nodes that have checked in a status within the last 2 min
 func (nm *nodeManager) onlineNodes() ([]Node, error) {
 	var nodes []Node
-	lastAllowedTime := time.Now().Add(-2 * time.Minute)
 
 	if err := nm.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("nodes"))
@@ -51,7 +50,7 @@ func (nm *nodeManager) onlineNodes() ([]Node, error) {
 				return err
 			}
 
-			if node.LastObservation.After(nm.startTime) && node.LastObservation.After(lastAllowedTime) {
+			if nm.isOnline(&node) {
 				nodes = append(nodes, node)
 			}
 		}
@@ -121,4 +120,10 @@ func (nm *nodeManager) getClusterNodes() ([]string, error) {
 	}
 
 	return nodeIds, nil
+}
+
+// isOnline checks id a node is considered as online
+func (nm *nodeManager) isOnline(node *Node) bool {
+	lastAllowedTime := time.Now().Add(-2 * time.Minute)
+	return node.LastObservation.After(nm.startTime) && node.LastObservation.After(lastAllowedTime)
 }

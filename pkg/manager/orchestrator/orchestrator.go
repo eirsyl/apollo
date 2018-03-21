@@ -4,6 +4,8 @@ import (
 	"context"
 	"net"
 
+	"fmt"
+
 	"github.com/coreos/bbolt"
 	pb "github.com/eirsyl/apollo/pkg/api"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
@@ -113,4 +115,42 @@ func (s *Server) Status(context.Context, *pb.EmptyMessage) (*pb.StatusResponse, 
 		Tasks:  tasks,
 	}
 	return &status, nil
+}
+
+// Nodes sends the cluster nodes to the cli client
+func (s *Server) Nodes(context.Context, *pb.EmptyMessage) (*pb.NodesResponse, error) {
+	nodes, err := s.cluster.nodeManager.allNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	normalizeNodes := func(members *map[string]ClusterNeighbour) []string {
+		var m []string
+		for node := range *members {
+			m = append(m, node)
+		}
+		return m
+	}
+
+	normalizeAnnotations := func(annotations *map[string]string) []string {
+		var a []string
+		for key, value := range *annotations {
+			a = append(a, fmt.Sprintf("%s=%s", key, value))
+		}
+		return a
+	}
+
+	var resultNodes []*pb.Node
+	for _, node := range nodes {
+		resultNodes = append(resultNodes, &pb.Node{
+			Id:              node.ID,
+			Addr:            node.Addr,
+			IsEmpty:         node.IsEmpty,
+			Nodes:           normalizeNodes(&node.Nodes),
+			HostAnnotations: normalizeAnnotations(&node.HostAnnotations),
+			Online:          s.cluster.nodeManager.isOnline(&node),
+		})
+	}
+
+	return &pb.NodesResponse{Nodes: resultNodes}, nil
 }
