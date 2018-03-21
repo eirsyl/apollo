@@ -374,15 +374,21 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 	// Detect nodes that want to become a member if the cluster
 	// Splits or multiple clusters?
 	// Is a node agent offline?
+
+	log.Info("Validating cluster members")
 	return true
 }
 
 // validateOpenSlots checks if the cluster has open slots
 func (c *Cluster) validateOpenSlots() bool {
+	// node.MySelf.openSlots() returns a slice of migrating/importing slots
+	log.Infof("Checking for open slots")
 	return true
 }
 
 // validateSlotCoverage validates the slot coverage (Each slot need a responsible node)
 func (c *Cluster) validateSlotCoverage() bool {
+	// node.Myself.allSlots() returns a list containing assigned slots
+	log.Info("Checking slot coverage")
 	return true
 }

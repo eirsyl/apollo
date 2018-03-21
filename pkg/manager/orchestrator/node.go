@@ -3,6 +3,12 @@ package orchestrator
 import (
 	"time"
 
+	"regexp"
+
+	"strconv"
+
+	"errors"
+
 	pb "github.com/eirsyl/apollo/pkg/api"
 )
 
@@ -17,6 +23,85 @@ type ClusterNeighbour struct {
 	ConfigEpoch int64    `json:"configEpoch"`
 	LinkStatus  string   `json:"linkStatus"`
 	Slots       []string `json:"slots"`
+}
+
+type slotAction int
+
+var (
+	importing slotAction = 1
+	migrating slotAction = 2
+)
+
+func stringToSlotAction(action string) slotAction {
+	if action == "<" {
+		return importing
+	}
+	return migrating
+}
+
+type openSlot struct {
+	slot        int
+	action      slotAction
+	destination string
+}
+
+// openSlots returns a map of open slots, the status and destination node
+func (cn *ClusterNeighbour) openSlots() (*[]openSlot, error) {
+	var slots []openSlot
+	reg := regexp.MustCompile(`^\[(?P<slot>\d+)\-(?P<operation>[<|>])\-(?P<destination>\w+)\]$`)
+	for _, slot := range cn.Slots {
+		match := reg.FindStringSubmatch(slot)
+		if len(match) == 4 {
+			slot, err := strconv.Atoi(match[1])
+			if err != nil {
+				return nil, err
+			}
+			slots = append(slots, openSlot{
+				slot:        slot,
+				action:      stringToSlotAction(match[2]),
+				destination: match[3],
+			})
+		}
+	}
+	return &slots, nil
+}
+
+// allSlots returns a list of slots managed by the node
+func (cn *ClusterNeighbour) allSlots() ([]int, error) {
+	slotRange := regexp.MustCompile(`^(?P<from>\d+)\-(?P<to>\d+)$`)
+	slotSingle := regexp.MustCompile(`^(?P<slot>\d+)$`)
+	var slots []int
+
+	for _, s := range cn.Slots {
+		match := slotRange.FindStringSubmatch(s)
+		if len(match) == 3 {
+			from, err := strconv.Atoi(match[1])
+			if err != nil {
+				return nil, err
+			}
+			to, err := strconv.Atoi(match[2])
+			if err != nil {
+				return nil, err
+			}
+			if to < from {
+				return nil, errors.New("from has to be lower than to")
+			}
+			for i := from; i <= to; i++ {
+				slots = append(slots, i)
+			}
+			continue
+		}
+		match = slotSingle.FindStringSubmatch(s)
+		if len(match) == 2 {
+			i, err := strconv.Atoi(match[1])
+			if err != nil {
+				return nil, err
+			}
+			slots = append(slots, i)
+			continue
+		}
+	}
+	return slots, nil
 }
 
 // Node represents an member of the cluster.
