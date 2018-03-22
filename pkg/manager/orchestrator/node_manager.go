@@ -124,6 +124,6 @@ func (nm *nodeManager) getClusterNodes() ([]string, error) {
 
 // isOnline checks id a node is considered as online
 func (nm *nodeManager) isOnline(node *Node) bool {
-	lastAllowedTime := time.Now().Add(-2 * time.Minute)
+	lastAllowedTime := time.Now().Add(-30 * time.Second)
 	return node.LastObservation.After(nm.startTime) && node.LastObservation.After(lastAllowedTime)
 }

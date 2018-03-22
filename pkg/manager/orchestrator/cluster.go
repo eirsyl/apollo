@@ -5,7 +5,10 @@ import (
 
 	"strconv"
 
+	"fmt"
+
 	"github.com/coreos/bbolt"
+	"github.com/eirsyl/apollo/pkg"
 	pb "github.com/eirsyl/apollo/pkg/api"
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator/planner"
 	log "github.com/sirupsen/logrus"
@@ -195,6 +198,25 @@ func (c *Cluster) iteration() {
 	}
 
 	if task == nil {
+		// Set cluster state to unknown if all nodes becomes empty while the manager is running
+		if c.state == clusterConfigured {
+			nodes, err := c.nodeManager.onlineNodes()
+			if err == nil {
+				var onlineNodesEmpty = true
+				for _, node := range nodes {
+					if !node.IsEmpty {
+						onlineNodesEmpty = false
+						break
+					}
+				}
+				if onlineNodesEmpty {
+					log.Info("All nodes appear to be empty, cluster state is unknown")
+					c.state = clusterUnknown
+					return
+				}
+			}
+		}
+
 		l.Info("No running task, initializing a cluster check")
 		c.checkCluster()
 	} else {
@@ -292,7 +314,11 @@ func (c *Cluster) checkCluster() {
 	c.maybeSetClusterNodes(onlineNodes, clusterNodes)
 
 	// Check if cluster is consistent (All nodes have the same observation of members)
-	clusterMemberValid := c.validateClusterMembers(onlineNodes, clusterNodes)
+	clusterMembers, clusterMemberValid, err := c.validateClusterMembers(onlineNodes, clusterNodes)
+	if err != nil {
+		log.Warn("Could not validate cluster members, skipping iteration")
+		return
+	}
 	if !clusterMemberValid {
 		// Fix node members
 		// Run fixup tasks and continue loop for now
@@ -300,14 +326,22 @@ func (c *Cluster) checkCluster() {
 		return
 	}
 
-	openSlotsValid := c.validateOpenSlots()
+	_, openSlotsValid, err := c.validateOpenSlots(clusterMembers)
+	if err != nil {
+		log.Warn("Could not validate open slots, skipping iteration")
+		return
+	}
 	if !openSlotsValid {
 		// Fix open slots
 		c.health = clusterWarn
 		return
 	}
 
-	slotCoverageValid := c.validateSlotCoverage()
+	slotCoverageValid, err := c.validateSlotCoverage(clusterMembers)
+	if err != nil {
+		log.Warn("Could not validate slot coverage, skipping iteration")
+		return
+	}
 	if !slotCoverageValid {
 		// fix slot allocation
 		c.health = clusterWarn
@@ -365,7 +399,7 @@ func (c *Cluster) maybeSetClusterNodes(onlineNodes *[]Node, clusterNodes *[]stri
 }
 
 // validateClusterMembers validates the node cluster membership state
-func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]string) bool {
+func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]string) (*[]Node, bool, error) {
 	// onlineNodes: Nodes with an agent that pushes metrics and fetches tasks
 	// clusterNodes: Nodes that the manager consider as cluster members
 
@@ -376,19 +410,35 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 	// Is a node agent offline?
 
 	log.Info("Validating cluster members")
-	return true
+	return onlineNodes, true, nil
 }
 
 // validateOpenSlots checks if the cluster has open slots
-func (c *Cluster) validateOpenSlots() bool {
-	// node.MySelf.openSlots() returns a slice of migrating/importing slots
+func (c *Cluster) validateOpenSlots(clusterMembers *[]Node) (*[]Node, bool, error) {
 	log.Infof("Checking for open slots")
-	return true
+	var n []Node
+	for _, node := range *clusterMembers {
+		openSlots, err := node.MySelf.openSlots()
+		if err != nil {
+			return nil, false, err
+		}
+		if len(*openSlots) != 0 {
+			n = append(n, node)
+		}
+	}
+	return &n, len(n) == 0, nil
 }
 
 // validateSlotCoverage validates the slot coverage (Each slot need a responsible node)
-func (c *Cluster) validateSlotCoverage() bool {
-	// node.Myself.allSlots() returns a list containing assigned slots
+func (c *Cluster) validateSlotCoverage(clusterMembers *[]Node) (bool, error) {
 	log.Info("Checking slot coverage")
-	return true
+	var slots []int
+	for _, node := range *clusterMembers {
+		nodeSlots, err := node.MySelf.allSlots()
+		if err != nil {
+			return false, fmt.Errorf("could not read node slots: %v", err)
+		}
+		slots = append(slots, nodeSlots...)
+	}
+	return len(slots) == pkg.ClusterHashSlots, nil
 }
