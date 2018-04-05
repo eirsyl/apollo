@@ -154,3 +154,9 @@ func (s *Server) Nodes(context.Context, *pb.EmptyMessage) (*pb.NodesResponse, er
 
 	return &pb.NodesResponse{Nodes: resultNodes}, nil
 }
+
+// DeleteNode is responsible for marking a node for deletion
+func (s *Server) DeleteNode(ctx context.Context, req *pb.DeleteNodeRequest) (*pb.DeleteNodeResponse, error) {
+	// TODO: Implement node marking for deletion
+	return &pb.DeleteNodeResponse{Success: false}, nil
+}

@@ -10,6 +10,7 @@ import (
 /**
  * allocSlots uses the information provided by each node to assign slots and replica configuration
  * TODO: This is a simple implementation, a more advanced implementation based on annotations is required.
+ * TODO: Node state, memory size etc should also be included in slot allocation.
  */
 func allocSlots(nodes *[]Node, replication int) (map[string]*planner.CreateClusterNodeOpts, error) {
 	config := map[string]*planner.CreateClusterNodeOpts{}

@@ -322,6 +322,7 @@ func (c *Cluster) checkCluster() {
 	if !clusterMemberValid {
 		// Fix node members
 		// Run fixup tasks and continue loop for now
+		log.Warn("[WIP] fix node members")
 		c.health = clusterWarn
 		return
 	}
@@ -333,6 +334,7 @@ func (c *Cluster) checkCluster() {
 	}
 	if !openSlotsValid {
 		// Fix open slots
+		log.Warn("[WIP] Fix open slots")
 		c.health = clusterWarn
 		return
 	}
@@ -344,12 +346,19 @@ func (c *Cluster) checkCluster() {
 	}
 	if !slotCoverageValid {
 		// fix slot allocation
+		log.Warn("[WIP] fix slot coverage")
 		c.health = clusterWarn
 		return
 	}
 
-	c.health = clusterOK
-	log.Info("Cluster healthy")
+	{
+		c.health = clusterOK
+		log.Info("Cluster healthy")
+		err := c.nodeManager.garbageCollectNodes()
+		if err != nil {
+			log.Warnf("Could not remove unused node data: %v", err)
+		}
+	}
 }
 
 // watchTask watches task execution and tries to fix execution errors
@@ -382,12 +391,17 @@ func (c *Cluster) maybeSetClusterNodes(onlineNodes *[]Node, clusterNodes *[]stri
 		return
 	}
 
+	if len(*clusterNodes) != 0 {
+		// cluster nodes set, just continue
+		return
+	}
+
 	if !clean {
 		log.Warnf("Cluster is not clean, nodes report different cluster members, skipping clusterNode config")
 		return
 	}
 
-	if clean && len(*clusterNodes) == 0 {
+	if clean {
 		log.Info("Cluster nodes is empty, forcing update")
 		err := c.nodeManager.setClusterNodes(discoveredNodeIds)
 		if err != nil {

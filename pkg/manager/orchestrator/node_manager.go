@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/coreos/bbolt"
+	log "github.com/sirupsen/logrus"
 )
 
 // node manager is responsible for storing node related data in boltDB
@@ -86,6 +87,51 @@ func (nm *nodeManager) allNodes() (map[string]Node, error) {
 		return nil, err
 	}
 	return nodes, nil
+}
+
+// garbageCollectNodes removes old and offline that is'nt considered part of the cluster
+func (nm *nodeManager) garbageCollectNodes() error {
+	clusterNodes, err := nm.getClusterNodes()
+	if err != nil {
+		return err
+	}
+
+	n := stringListToMap(clusterNodes)
+	collected := 0
+
+	return nm.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("nodes"))
+		c := b.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			var node Node
+			err := json.Unmarshal(v, &node)
+			if err != nil {
+				return err
+			}
+
+			if nm.isOnline(&node) {
+				continue
+			}
+
+			if n[node.ID] {
+				continue
+			}
+
+			err = b.Delete(k)
+			if err != nil {
+				return err
+			}
+
+			collected++
+		}
+
+		if collected > 0 {
+			log.Infof("Node manager gc removed %d nodes", collected)
+		}
+
+		return nil
+	})
 }
 
 /**

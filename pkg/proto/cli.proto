@@ -5,6 +5,7 @@ package api;
 service CLI {
     rpc Status (EmptyMessage) returns (StatusResponse) {}
     rpc Nodes (EmptyMessage) returns (NodesResponse) {}
+    rpc DeleteNode (DeleteNodeRequest) returns (DeleteNodeResponse) {}
 }
 
 message EmptyMessage {}
@@ -17,6 +18,14 @@ message StatusResponse {
 
 message NodesResponse {
     repeated Node nodes = 1;
+}
+
+message DeleteNodeRequest {
+    string nodeID = 1;
+}
+
+message DeleteNodeResponse {
+    bool success = 1;
 }
 
 message Task {

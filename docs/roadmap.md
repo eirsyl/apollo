@@ -4,7 +4,7 @@
 
 - [x] Lookup node name from `cluster nodes`
 - [x] Make usage of the collected information from the info commands
-- [ ] Manager should store the cluster topology
+- [x] Manager should store the cluster topology
 
 * Check slot coverage
 * Check cluster configuration consistency (slot owners)

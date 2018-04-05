@@ -42,6 +42,15 @@ func mapKeysToString(m map[string]bool) (res []string) {
 	return
 }
 
+// stringListToMap creates a map[string]bool based on a []string
+func stringListToMap(list []string) (res map[string]bool) {
+	res = make(map[string]bool)
+	for _, element := range list {
+		res[element] = true
+	}
+	return
+}
+
 // findClusterNodes parses a list of nodes and returns all cluster members reported by the given nodes
 func findClusterNodes(nodes *[]Node) ([]string, bool, error) {
 	members := map[string]bool{}
