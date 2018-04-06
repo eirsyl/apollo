@@ -7,6 +7,8 @@ import (
 
 	"fmt"
 
+	"errors"
+
 	"github.com/coreos/bbolt"
 	"github.com/eirsyl/apollo/pkg"
 	pb "github.com/eirsyl/apollo/pkg/api"
@@ -314,9 +316,14 @@ func (c *Cluster) checkCluster() {
 	c.maybeSetClusterNodes(onlineNodes, clusterNodes)
 
 	// Check if cluster is consistent (All nodes have the same observation of members)
-	clusterMembers, clusterMemberValid, err := c.validateClusterMembers(onlineNodes, clusterNodes)
+	clusterMembers, clusterMemberValid, offlineAgents, err := c.validateClusterMembers(onlineNodes, clusterNodes)
 	if err != nil {
 		log.Warn("Could not validate cluster members, skipping iteration")
+		return
+	}
+	if len(offlineAgents) > 0 {
+		log.Warnf("Some nodes is configured as cluster members, but not agent is reporting state: %v", offlineAgents)
+		log.Warn("Skipping iteration, please make sure each redis node has an active apollo agent.")
 		return
 	}
 	if !clusterMemberValid {
@@ -354,10 +361,16 @@ func (c *Cluster) checkCluster() {
 	{
 		c.health = clusterOK
 		log.Info("Cluster healthy")
-		err := c.nodeManager.garbageCollectNodes()
+		err = c.nodeManager.garbageCollectNodes()
 		if err != nil {
 			log.Warnf("Could not remove unused node data: %v", err)
 		}
+	}
+
+	// Cluster healthy start the process of adding or removing a node from the cluster
+	err = c.createNodeManagementTasks()
+	if err != nil {
+		log.Warnf("Could not initialize node addition/removal tasks: %v", err)
 	}
 }
 
@@ -413,9 +426,10 @@ func (c *Cluster) maybeSetClusterNodes(onlineNodes *[]Node, clusterNodes *[]stri
 }
 
 // validateClusterMembers validates the node cluster membership state
-func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]string) (*[]Node, bool, error) {
+func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]string) (*[]Node, bool, []string, error) {
 	// onlineNodes: Nodes with an agent that pushes metrics and fetches tasks
 	// clusterNodes: Nodes that the manager consider as cluster members
+	// Returns (clusterMembers, consistentCluster, offlineNodes, error)
 
 	// TODO: Validate node configuration
 	// Validate the nodes that actually is a member of the cluster
@@ -424,7 +438,132 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 	// Is a node agent offline?
 
 	log.Info("Validating cluster members")
-	return onlineNodes, true, nil
+
+	onlineNodesMap := map[string]Node{}
+	for _, node := range *onlineNodes {
+		onlineNodesMap[node.ID] = node
+	}
+
+	clusterNodesMap := map[string]bool{}
+	for _, node := range *clusterNodes {
+		clusterNodesMap[node] = true
+	}
+
+	clusterNodeIds, clean, err := findClusterNodes(onlineNodes)
+	if err != nil {
+		return nil, false, nil, err
+	}
+
+	var offlineAgents []string
+	for _, clusterNode := range clusterNodeIds {
+		_, ok := onlineNodesMap[clusterNode]
+		if !ok {
+			offlineAgents = append(offlineAgents, clusterNode)
+		}
+	}
+
+	var nodes []Node
+	if clean {
+		// Update cluster members if the cluster is clean
+		err = c.nodeManager.setClusterNodes(clusterNodeIds)
+		if err != nil {
+			return nil, false, nil, err
+		}
+		// Use all the nodes returned by findClusterNodes
+		for _, nodeID := range clusterNodeIds {
+			node, ok := onlineNodesMap[nodeID]
+			if !ok {
+				continue
+			}
+			nodes = append(nodes, node)
+		}
+	} else {
+		/**
+		* This is the hard case, nodes appear to be member of different clusters.
+		* This could either be a clean node or a configured node that is member of
+		* another cluster.
+		* Cases:
+		* - Functional cluster and empty nodes
+		* - Divided cluster, not every node is aware of the whole cluster
+		* - To separate clusters is reporting state to the manager (causes crash, apollo cannot handle this case)
+		 */
+		signatures, err := nodeSignatures(onlineNodes)
+		if err != nil {
+			return nil, false, nil, err
+		}
+
+		if len(signatures) < 2 {
+			// No nodes or clean cluster, should not happen.
+			log.Warnf("The node validator reported the cluster as unclean, but the signature count is lower than 2")
+			return nil, false, nil, errors.New("invalid signature count")
+		}
+
+		type clusterCase int
+		var emptyNodes clusterCase = 1
+		var partition clusterCase = 2
+		var unknownClusters clusterCase = 3
+		discoveredCases := map[clusterCase]bool{}
+		emptySignatures := map[string]bool{}
+
+		for signature, nodes := range signatures {
+			// New empty node
+			if len(nodes) == 1 {
+				node := nodes[0]
+				if node.IsEmpty && len(node.Nodes) == 1 {
+					discoveredCases[emptyNodes] = true
+					emptySignatures[signature] = true
+					continue
+				}
+			}
+
+			knownMembers := 0
+			fullMatch := true
+			for _, node := range nodes {
+				for _, member := range node.Nodes {
+					if clusterNodesMap[member.ID] {
+						knownMembers++
+					} else {
+						fullMatch = false
+					}
+				}
+			}
+
+			// Overlapping signature (cluster partition)
+			if knownMembers > 0 && !fullMatch {
+				discoveredCases[partition] = true
+				continue
+			}
+
+			// Completely unknown members (two different clusters is reporting to apollo)
+			if !fullMatch {
+				discoveredCases[unknownClusters] = true
+			}
+		}
+
+		if discoveredCases[unknownClusters] {
+			return nil, false, nil, errors.New("signature contains unknown cluster, cannot continue")
+		}
+
+		// Don't start cluster repair if the unknown signature is an empty node
+		if !discoveredCases[partition] && discoveredCases[emptyNodes] {
+			clean = true
+		}
+
+		// Merge partitioned signatures and filter away empty nodes
+		mergedNodes := map[string]Node{}
+		for signature, clusterMembers := range signatures {
+			if !emptySignatures[signature] {
+				for _, node := range clusterMembers {
+					mergedNodes[node.ID] = node
+				}
+			}
+		}
+		for _, node := range mergedNodes {
+			nodes = append(nodes, node)
+		}
+	}
+
+	return &nodes, clean, offlineAgents, nil
 }
 
 // validateOpenSlots checks if the cluster has open slots
@@ -455,4 +594,11 @@ func (c *Cluster) validateSlotCoverage(clusterMembers *[]Node) (bool, error) {
 		slots = append(slots, nodeSlots...)
 	}
 	return len(slots) == pkg.ClusterHashSlots, nil
+}
+
+// createNodeManagementTasks is responsible for creating tasks for node addition or removal
+func (c *Cluster) createNodeManagementTasks() error {
+	// TODO: Create a task for node addition or removal
+	log.Info("[WIP] Creating node addition and removal tasks")
+	return nil
 }

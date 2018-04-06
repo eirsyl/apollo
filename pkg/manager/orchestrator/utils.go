@@ -69,3 +69,28 @@ func findClusterNodes(nodes *[]Node) ([]string, bool, error) {
 
 	return mapKeysToString(members), len(memberSignatures) == 1, nil
 }
+
+// nodeSignatures groups nodes by signature, not the same ass findClusterNodes
+func nodeSignatures(nodes *[]Node) (map[string][]Node, error) {
+	signatures := map[string][]Node{}
+
+	for _, node := range *nodes {
+		var memberList []string
+		for _, member := range node.Nodes {
+			memberList = append(memberList, member.ID)
+		}
+		sort.Strings(memberList)
+		signature := strings.Join(memberList, "")
+
+		lookup, ok := signatures[signature]
+		if ok {
+			lookup = append(lookup, node)
+			signatures[signature] = lookup
+		} else {
+			signatures[signature] = []Node{node}
+		}
+
+	}
+
+	return signatures, nil
+}
