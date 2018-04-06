@@ -97,7 +97,12 @@ services:
         network_mode: host
     manager:
       image: eirsyl/apollo:latest
-      command: manager
+      command: 
+        - manager 
+        - --minNodesCreate
+        - '9'
+        - --replication
+        - '2'
       network_mode: host
     agent0:
       image: eirsyl/apollo:latest
