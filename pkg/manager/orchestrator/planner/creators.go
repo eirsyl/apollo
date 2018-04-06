@@ -2,6 +2,8 @@ package planner
 
 import (
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // CreateClusterNodeOpts is used to provide extra data to the NewCreateClusterTask func.
@@ -100,27 +102,34 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 // cluster partitions
 func (p *Planner) NewClusterMemberFixupTask() error {
 	// TODO: create task
+	log.Info("[TASK] Fix cluster members")
 	return nil
 }
 
 // NewOpenSlotsFixupTask tries to close open slots
 func (p *Planner) NewOpenSlotsFixupTask() error {
 	// TODO: create task
+	log.Info("[TASK] Fix open slots")
 	return nil
 }
 
 // NewSlotCoverageFixupTask tries to fix slot coverage
 func (p *Planner) NewSlotCoverageFixupTask() error {
 	// TODO: create task
+	log.Info("[TASK] Slot coverage fixup")
 	return nil
 }
 
 // NewAddNodeTask add additional nodes to the cluster
 func (p *Planner) NewAddNodeTask() error {
+	// TODO: create task
+	log.Info("[TASK] Add node")
 	return nil
 }
 
 // NewRemoveNodeTask add additional nodes to the cluster
 func (p *Planner) NewRemoveNodeTask() error {
+	// TODO: create task
+	log.Info("[TASK] Remove node")
 	return nil
 }

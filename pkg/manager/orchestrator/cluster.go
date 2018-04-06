@@ -335,12 +335,14 @@ func (c *Cluster) checkCluster() {
 		return
 	}
 
-	_, openSlotsValid, err := c.validateOpenSlots(clusterMembers)
+	nodesWithOpenSlots, openSlotsValid, err := c.validateOpenSlots(clusterMembers)
 	if err != nil {
 		log.Warn("Could not validate open slots, skipping iteration")
 		return
 	}
 	if !openSlotsValid {
+		log.Warnf("Nodes with open slots: %d", len(*nodesWithOpenSlots))
+
 		err = c.planner.NewOpenSlotsFixupTask()
 		if err != nil {
 			log.Warnf("Could not create planner task: %v", err)
