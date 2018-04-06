@@ -95,3 +95,32 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 
 	return nil
 }
+
+// NewClusterMemberFixupTask tries to notify agents about the cluster topology in order to fix
+// cluster partitions
+func (p *Planner) NewClusterMemberFixupTask() error {
+	// TODO: create task
+	return nil
+}
+
+// NewOpenSlotsFixupTask tries to close open slots
+func (p *Planner) NewOpenSlotsFixupTask() error {
+	// TODO: create task
+	return nil
+}
+
+// NewSlotCoverageFixupTask tries to fix slot coverage
+func (p *Planner) NewSlotCoverageFixupTask() error {
+	// TODO: create task
+	return nil
+}
+
+// NewAddNodeTask add additional nodes to the cluster
+func (p *Planner) NewAddNodeTask() error {
+	return nil
+}
+
+// NewRemoveNodeTask add additional nodes to the cluster
+func (p *Planner) NewRemoveNodeTask() error {
+	return nil
+}

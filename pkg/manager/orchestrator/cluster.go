@@ -327,9 +327,10 @@ func (c *Cluster) checkCluster() {
 		return
 	}
 	if !clusterMemberValid {
-		// Fix node members
-		// Run fixup tasks and continue loop for now
-		log.Warn("[WIP] fix node members")
+		err = c.planner.NewClusterMemberFixupTask()
+		if err != nil {
+			log.Warnf("Could not create planner task: %v", err)
+		}
 		c.health = clusterWarn
 		return
 	}
@@ -340,8 +341,10 @@ func (c *Cluster) checkCluster() {
 		return
 	}
 	if !openSlotsValid {
-		// Fix open slots
-		log.Warn("[WIP] Fix open slots")
+		err = c.planner.NewOpenSlotsFixupTask()
+		if err != nil {
+			log.Warnf("Could not create planner task: %v", err)
+		}
 		c.health = clusterWarn
 		return
 	}
@@ -352,8 +355,10 @@ func (c *Cluster) checkCluster() {
 		return
 	}
 	if !slotCoverageValid {
-		// fix slot allocation
-		log.Warn("[WIP] fix slot coverage")
+		err = c.planner.NewSlotCoverageFixupTask()
+		if err != nil {
+			log.Warnf("Could not create planner task: %v", err)
+		}
 		c.health = clusterWarn
 		return
 	}
@@ -431,7 +436,6 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 	// clusterNodes: Nodes that the manager consider as cluster members
 	// Returns (clusterMembers, consistentCluster, offlineNodes, error)
 
-	// TODO: Validate node configuration
 	// Validate the nodes that actually is a member of the cluster
 	// Detect nodes that want to become a member if the cluster
 	// Splits or multiple clusters?
@@ -463,6 +467,7 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 	}
 
 	var nodes []Node
+	addableNodes := map[string]bool{}
 	if clean {
 		// Update cluster members if the cluster is clean
 		err = c.nodeManager.setClusterNodes(clusterNodeIds)
@@ -487,9 +492,9 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 		* - Divided cluster, not every node is aware of the whole cluster
 		* - To separate clusters is reporting state to the manager (causes crash, apollo cannot handle this case)
 		 */
-		signatures, err := nodeSignatures(onlineNodes)
-		if err != nil {
-			return nil, false, nil, err
+		signatures, e := nodeSignatures(onlineNodes)
+		if e != nil {
+			return nil, false, nil, e
 		}
 
 		if len(signatures) < 2 {
@@ -556,11 +561,22 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 				for _, node := range clusterMembers {
 					mergedNodes[node.ID] = node
 				}
+			} else {
+				for _, node := range clusterMembers {
+					addableNodes[node.ID] = true
+				}
 			}
 		}
 		for _, node := range mergedNodes {
 			nodes = append(nodes, node)
 		}
+
+	}
+
+	// Update addable nodes for later usage by the addNode task
+	err = c.nodeManager.setEmptyNodes(mapKeysToString(addableNodes))
+	if err != nil {
+		log.Warnf("Could not set addable nodes: %v", err)
 	}
 
 	return &nodes, clean, offlineAgents, nil
@@ -598,7 +614,51 @@ func (c *Cluster) validateSlotCoverage(clusterMembers *[]Node) (bool, error) {
 
 // createNodeManagementTasks is responsible for creating tasks for node addition or removal
 func (c *Cluster) createNodeManagementTasks() error {
-	// TODO: Create a task for node addition or removal
-	log.Info("[WIP] Creating node addition and removal tasks")
+	/**
+	 * Consider online nodes only, this works because the cluster validation, or caller
+	 * of this function skips the execution if not every agent is online.
+	 */
+	nodes, err := c.nodeManager.onlineNodes()
+	if err != nil {
+		return err
+	}
+
+	// Empty nodes lookup
+	em, err := c.nodeManager.getEmptyNodes()
+	if err != nil {
+		return err
+	}
+	emptyNodes := map[string]bool{}
+	for _, n := range em {
+		emptyNodes[n] = true
+	}
+
+	var addableNodes []Node
+	var removableNodes []Node
+
+	for _, n := range nodes {
+		if c.nodeManager.isNodePending(n.ID) {
+			log.Info("Node pending, searching for next possible target: %v", n.ID)
+			continue
+		}
+		if emptyNodes[n.ID] {
+			addableNodes = append(addableNodes, n)
+		} else if n.MarkedForDeletion {
+			removableNodes = append(removableNodes, n)
+		}
+	}
+
+	if len(addableNodes) > 0 {
+		err = c.planner.NewAddNodeTask()
+		if err != nil {
+			return err
+		}
+	} else if len(removableNodes) > 0 {
+		err = c.planner.NewRemoveNodeTask()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

@@ -106,14 +106,15 @@ func (cn *ClusterNeighbour) allSlots() ([]int, error) {
 
 // Node represents an member of the cluster.
 type Node struct {
-	ID              string                      `json:"id"`
-	Addr            string                      `json:"addr"`
-	IsEmpty         bool                        `json:"isEmpty"`
-	MySelf          ClusterNeighbour            `json:"myself"`
-	Nodes           map[string]ClusterNeighbour `json:"nodes"`
-	HostAnnotations map[string]string           `json:"annotations"`
-	Metrics         map[string]float64          `json:"metrics"`
-	LastObservation time.Time                   `json:"lastObservation"`
+	ID                string                      `json:"id"`
+	Addr              string                      `json:"addr"`
+	IsEmpty           bool                        `json:"isEmpty"`
+	MySelf            ClusterNeighbour            `json:"myself"`
+	Nodes             map[string]ClusterNeighbour `json:"nodes"`
+	HostAnnotations   map[string]string           `json:"annotations"`
+	Metrics           map[string]float64          `json:"metrics"`
+	LastObservation   time.Time                   `json:"lastObservation"`
+	MarkedForDeletion bool                        `json:"markedForDeletion"`
 }
 
 func newClusterNeighbourFromPb(nodes []*pb.ClusterNode) (map[string]ClusterNeighbour, ClusterNeighbour, error) {

@@ -157,6 +157,10 @@ func (s *Server) Nodes(context.Context, *pb.EmptyMessage) (*pb.NodesResponse, er
 
 // DeleteNode is responsible for marking a node for deletion
 func (s *Server) DeleteNode(ctx context.Context, req *pb.DeleteNodeRequest) (*pb.DeleteNodeResponse, error) {
-	// TODO: Implement node marking for deletion
-	return &pb.DeleteNodeResponse{Success: false}, nil
+	err := s.cluster.nodeManager.markNodeForDeletion(req.NodeID)
+	if err != nil {
+		log.Warnf("Could not mark node for deletion: %v", err)
+		return &pb.DeleteNodeResponse{Success: false}, nil
+	}
+	return &pb.DeleteNodeResponse{Success: true}, nil
 }

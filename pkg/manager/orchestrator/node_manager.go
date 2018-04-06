@@ -11,13 +11,18 @@ import (
 
 // node manager is responsible for storing node related data in boltDB
 type nodeManager struct {
-	db        *bolt.DB
-	startTime time.Time
+	db           *bolt.DB
+	startTime    time.Time
+	pendingNodes map[string]time.Time
 }
 
 // newNodeManager creates a new node manager
 func newNodeManager(db *bolt.DB) (*nodeManager, error) {
-	return &nodeManager{db: db, startTime: time.Now().UTC()}, nil
+	return &nodeManager{
+		db:           db,
+		startTime:    time.Now().UTC(),
+		pendingNodes: map[string]time.Time{},
+	}, nil
 }
 
 // updateNode updates a node based on the status received by the manager.
@@ -134,6 +139,29 @@ func (nm *nodeManager) garbageCollectNodes() error {
 	})
 }
 
+// markNodeForDeletion marks a node for deletion
+func (nm *nodeManager) markNodeForDeletion(nodeID string) error {
+	return nm.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("nodes"))
+		id := []byte(nodeID)
+
+		v := b.Get(id)
+		var node Node
+		err := json.Unmarshal(v, &node)
+		if err != nil {
+			return err
+		}
+
+		node.MarkedForDeletion = true
+
+		buf, err := json.Marshal(node)
+		if err != nil {
+			return err
+		}
+		return b.Put(id, buf)
+	})
+}
+
 /**
  * Cluster Status
  */
@@ -172,4 +200,50 @@ func (nm *nodeManager) getClusterNodes() ([]string, error) {
 func (nm *nodeManager) isOnline(node *Node) bool {
 	lastAllowedTime := time.Now().Add(-30 * time.Second)
 	return node.LastObservation.After(nm.startTime) && node.LastObservation.After(lastAllowedTime)
+}
+
+// setEmptyNodes updates the list of empty nodes ready for joining the cluster
+func (nm *nodeManager) setEmptyNodes(nodeIds []string) error {
+	return nm.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("cluster"))
+
+		buf, err := json.Marshal(nodeIds)
+		if err != nil {
+			return err
+		}
+
+		return b.Put([]byte("emptyNodes"), buf)
+	})
+}
+
+// getEmptyNodes returns the list of empty nodes
+func (nm *nodeManager) getEmptyNodes() ([]string, error) {
+	var nodeIds []string
+
+	err := nm.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("cluster"))
+		return json.Unmarshal(b.Get([]byte("emptyNodes")), &nodeIds)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return nodeIds, nil
+}
+
+// isNodePending checks if a node has been targeted for addition or removal within the last 1m
+// is is a safety guard from running the same commands against one node multiple times.
+func (nm *nodeManager) isNodePending(nodeID string) bool {
+	executionTime, ok := nm.pendingNodes[nodeID]
+	if !ok {
+		return false
+	}
+
+	lastAllowedTime := time.Now().Add(-1 * time.Minute)
+	pending := executionTime.After(lastAllowedTime)
+	if !pending {
+		delete(nm.pendingNodes, nodeID)
+	}
+	return pending
 }
