@@ -36,6 +36,8 @@ var (
 	CommandSetEpoch commandType = 3
 	// CommandJoinCluster is used to call the CLUSTER MEET command.
 	CommandJoinCluster commandType = 4
+	// CommandCountKeysInSlots is used to count keys given a list of keys
+	CommandCountKeysInSlots commandType = 5
 )
 
 // CommandOpts is used to attach extra data to commands.
@@ -74,16 +76,17 @@ func (co *CommandOpts) GetKIL(key string) []int {
 
 // Command represents a command that should be executed on a node
 type Command struct {
-	ID           uuid.UUID
-	NodeID       string
-	Type         commandType
-	Status       commandStatus
-	Opts         CommandOpts
-	Creation     time.Time
-	Execution    time.Time
-	Retries      int64
-	Dependencies []*Command
-	Results      [][]string
+	ID            uuid.UUID
+	NodeID        string
+	Type          commandType
+	Status        commandStatus
+	Opts          CommandOpts
+	Creation      time.Time
+	Execution     time.Time
+	Retries       int64
+	Dependencies  []*Command
+	Results       [][]string
+	ShouldExecute *func(command *Command) (bool, error)
 }
 
 // NewCommand creates a new command

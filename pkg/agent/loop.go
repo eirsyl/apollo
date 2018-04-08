@@ -8,6 +8,8 @@ import (
 
 	"strconv"
 
+	"fmt"
+
 	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/agent/redis"
 	pb "github.com/eirsyl/apollo/pkg/api"
@@ -167,6 +169,12 @@ func (r *ReconciliationLoop) iteration() error {
 		return err
 	}
 
+	// Make sure the node changes is reflected by the manager
+	err = r.reportInstanceState()
+	if err != nil {
+		return err
+	}
+
 	return r.reportResults(results)
 }
 
@@ -266,6 +274,8 @@ func (r *ReconciliationLoop) performActions(commands []*contrib.NodeCommand) ([]
 			result, err = r.setEpoch(command)
 		case contrib.CommandJoinCluster:
 			result, err = r.joinCluster(command)
+		case contrib.CommandCountKeysInSlots:
+			result, err = r.countKeysInSlots(command)
 		default:
 			log.Warnf("Agent received unsupported command: %v %v", command.ID, command.Command)
 			result, err = contrib.NewNodeCommandResult(command.ID, []string{"UNSUPPORTED COMMAND"}, false)
@@ -407,4 +417,29 @@ func (r *ReconciliationLoop) joinCluster(command *contrib.NodeCommand) (*contrib
 	}
 	time.Sleep(5 * time.Second)
 	return contrib.NewNodeCommandResult(c.ID, []string{res}, err == nil)
+}
+
+func (r *ReconciliationLoop) countKeysInSlots(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	c := *command
+	var slots []int
+	for _, s := range c.Arguments {
+		slot, err := strconv.Atoi(s)
+		if err != nil {
+			log.Warnf("Invalid slot value: %v", s)
+		}
+		slots = append(slots, slot)
+	}
+
+	var results []string
+	success := true
+	for _, slot := range slots {
+		res, err := r.redis.CountKeysInSlot(slot)
+		if err != nil {
+			log.Warnf("Redis error: %v", err)
+			success = false
+		}
+		results = append(results, fmt.Sprintf("%d=%d", slot, res))
+	}
+
+	return contrib.NewNodeCommandResult(c.ID, results, success)
 }

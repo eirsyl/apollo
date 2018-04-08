@@ -201,6 +201,12 @@ func (c *Client) SetEpoch(epoch int) (string, error) {
 	return "", nil
 }
 
+// CountKeysInSlot counts the count of keys in a given slot
+func (c *Client) CountKeysInSlot(slot int) (int64, error) {
+	log.Infof("Counting keys in slot: %d", slot)
+	return c.redis.ClusterCountKeysInSlot(slot).Result()
+}
+
 /*
  * Private functions
  */

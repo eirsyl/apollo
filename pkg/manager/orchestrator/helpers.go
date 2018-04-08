@@ -3,8 +3,12 @@ package orchestrator
 import (
 	"math"
 
+	"errors"
+	"math/rand"
+
 	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator/planner"
+	log "github.com/sirupsen/logrus"
 )
 
 /**
@@ -55,4 +59,140 @@ func allocSlots(nodes *[]Node, replication int) (map[string]*planner.CreateClust
 	}
 
 	return config, nil
+}
+
+// allocEmptySlot is responsible for allocation an empty slot on a master inside the cluster
+// TODO: Base this decision on resource limits
+func allocEmptySlot(nodes *[]Node) (*Node, error) {
+	var masters []Node
+	for _, node := range *nodes {
+		if node.MySelf.Role == "master" {
+			masters = append(masters, node)
+		}
+	}
+	if len(masters) == 0 {
+		return nil, errors.New("no masters found")
+	}
+	n := rand.Int() % len(masters)
+	return &masters[n], nil
+}
+
+type slotCoveragePlanner struct {
+	nm *nodeManager
+}
+
+func newSlotCoveragePlanner(nm *nodeManager) (*slotCoveragePlanner, error) {
+	return &slotCoveragePlanner{nm: nm}, nil
+}
+
+func (scp *slotCoveragePlanner) convertCounts(counts map[string]planner.SlotKeyCounts) map[int][]string {
+	res := map[int][]string{}
+	for node, c := range counts {
+		for slot, keys := range c.Counts {
+			nodes, ok := res[slot]
+			if ok {
+				if keys > 0 {
+					res[slot] = append(nodes, node)
+				}
+			} else {
+				if keys > 0 {
+					res[slot] = []string{node}
+				} else {
+					res[slot] = []string{}
+				}
+			}
+		}
+	}
+	return res
+}
+
+func (scp *slotCoveragePlanner) AllocateSlotsWithoutKeys(counts map[string]planner.SlotKeyCounts) (map[string]planner.AllocationResult, error) {
+	nodeSlots := scp.convertCounts(counts)
+	var emptySlots []int
+	for slot, nodes := range nodeSlots {
+		if len(nodes) == 0 {
+			emptySlots = append(emptySlots, slot)
+		}
+	}
+
+	// Assign slots to random masters
+	res := map[string]planner.AllocationResult{}
+	clusterNodes, err := scp.nm.getClusterNodes()
+	if err != nil {
+		return nil, err
+	}
+	allNodes, err := scp.nm.allNodes()
+	if err != nil {
+		return nil, err
+	}
+	var nodes []Node
+	for _, node := range clusterNodes {
+		n, ok := allNodes[node]
+		if ok {
+			nodes = append(nodes, n)
+		}
+	}
+
+	for _, slot := range emptySlots {
+		node, err := allocEmptySlot(&nodes)
+		if err != nil {
+			return nil, err
+		}
+
+		ar, ok := res[node.ID]
+		if ok {
+			ar.Slots = append(ar.Slots, slot)
+		} else {
+			res[node.ID] = planner.AllocationResult{Slots: []int{slot}}
+		}
+	}
+
+	return res, nil
+}
+
+func (scp *slotCoveragePlanner) AllocateSlotsWithOneNode(counts map[string]planner.SlotKeyCounts) (map[string]planner.AllocationResult, error) {
+	nodeSlots := scp.convertCounts(counts)
+	slotsWithOneNode := map[string][]int{}
+	for slot, nodes := range nodeSlots {
+		if len(nodes) == 1 {
+			node := nodes[0]
+			slots, ok := slotsWithOneNode[node]
+			if ok {
+				slotsWithOneNode[node] = append(slots, slot)
+			} else {
+				slotsWithOneNode[node] = []int{slot}
+			}
+		}
+	}
+
+	// Assign slots to the node with keys
+	res := map[string]planner.AllocationResult{}
+	for node, slots := range slotsWithOneNode {
+		res[node] = planner.AllocationResult{
+			Slots: slots,
+		}
+	}
+
+	return res, nil
+}
+
+func (scp *slotCoveragePlanner) AllocateSlotsWithMultipleNodes(counts map[string]planner.SlotKeyCounts) (map[string]planner.AdvancedAllocationResult, error) {
+	// TODO: Implement this
+	nodeSlots := scp.convertCounts(counts)
+	var slotsWithMultipleNodes []int
+	for slot, nodes := range nodeSlots {
+		if len(nodes) > 1 {
+			slotsWithMultipleNodes = append(slotsWithMultipleNodes, slot)
+		}
+	}
+	log.Info("[WIP] Slots with multiple nodes: %v", slotsWithMultipleNodes)
+	return map[string]planner.AdvancedAllocationResult{}, nil
+}
+
+func (scp *slotCoveragePlanner) IsMasterNode(nodeID string) (bool, error) {
+	node, err := scp.nm.getNode(nodeID)
+	if err != nil {
+		return false, err
+	}
+	return node.MySelf.Role == "master", nil
 }

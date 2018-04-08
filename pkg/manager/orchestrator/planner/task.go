@@ -1,6 +1,8 @@
 package planner
 
 import (
+	"sync"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,12 +23,12 @@ func (cs *taskStatus) Int64() int64 {
 var (
 	// TaskCreateCluster task is responsible for creating a cluster
 	TaskCreateCluster taskType = 1
-	// TaskCheckCluster is responsible for checking the configuration of a cluster
-	TaskCheckCluster taskType = 2
+	// TaskMemberFixup is responsible for making sure each cluster member knows about each other
+	TaskMemberFixup taskType = 2
+	// TaskFixOpenSlots is responsible for fixing open slots
+	TaskFixOpenSlots taskType = 3
 	// TaskFixSlotAllocation is responsible for fixing slot allocation issues
-	TaskFixSlotAllocation taskType = 3
-	// TaskRebalanceCluster is responsible for moving slot assignments in order to prevent cluster issues
-	TaskRebalanceCluster taskType = 4
+	TaskFixSlotAllocation taskType = 4
 	// TaskAddNodeCluster is used to add new nodes to the cluster
 	TaskAddNodeCluster taskType = 5
 	// TaskRemoveNodeCluster is used to remove a node from the cluster
@@ -42,9 +44,11 @@ var (
 
 // Task represents a task that the cluster manager should execute
 type Task struct {
-	Type     taskType
-	Status   taskStatus
-	Commands []*Command
+	Type           taskType
+	Status         taskStatus
+	Commands       []*Command
+	ProcessResults func(task *Task) error
+	lock           sync.Mutex
 }
 
 // NewTask creates a new task
@@ -53,6 +57,7 @@ func NewTask(t taskType, commands []*Command) (*Task, error) {
 		Type:     t,
 		Status:   StatusWaiting,
 		Commands: commands,
+		lock:     sync.Mutex{},
 	}
 	return task, nil
 }
@@ -73,6 +78,9 @@ func (t *Task) NextCommands(nodeID string) ([]*Command, error) {
 
 		if command.Status == CommandWaiting {
 			if len(command.Dependencies) == 0 {
+				if !shouldExecute(command) {
+					continue
+				}
 				commands = append(commands, command)
 			} else {
 				available := true
@@ -83,6 +91,9 @@ func (t *Task) NextCommands(nodeID string) ([]*Command, error) {
 					}
 				}
 				if available {
+					if !shouldExecute(command) {
+						continue
+					}
 					commands = append(commands, command)
 				}
 			}
@@ -96,6 +107,16 @@ func (t *Task) NextCommands(nodeID string) ([]*Command, error) {
 func (t *Task) UpdateStatus() {
 	status := StatusWaiting
 	allFinished := true
+
+	// Internal task processing used to update task commands
+	if t.ProcessResults != nil {
+		t.lock.Lock()
+		err := t.ProcessResults(t)
+		t.lock.Unlock()
+		if err != nil {
+			log.Warnf("Could not run internal task processing: %v", err)
+		}
+	}
 
 L:
 	for _, command := range t.Commands {

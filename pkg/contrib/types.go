@@ -14,6 +14,8 @@ const (
 	CommandSetEpoch Command = 3
 	// CommandJoinCluster is used to call the CLUSTER MEET command.
 	CommandJoinCluster Command = 4
+	// CommandCountKeysInSlots is used to count keys given a list of slots.
+	CommandCountKeysInSlots Command = 5
 )
 
 // NodeCommand stores a command that the manager issues to an agent
@@ -35,6 +37,8 @@ func NewNodeCommand(id string, command int64, arguments []string) (*NodeCommand,
 		commandType = CommandSetEpoch
 	case 4:
 		commandType = CommandJoinCluster
+	case 5:
+		commandType = CommandCountKeysInSlots
 	default:
 		return nil, errors.New("Unsupported command type")
 	}

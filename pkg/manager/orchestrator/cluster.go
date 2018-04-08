@@ -263,6 +263,10 @@ func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*pb.NextExecution
 			arguments = []string{command.Opts.GetKS("epoch")}
 		case planner.CommandJoinCluster:
 			arguments = []string{command.Opts.GetKS("node")}
+		case planner.CommandCountKeysInSlots:
+			for _, slot := range command.Opts.GetKIL("slots") {
+				arguments = append(arguments, strconv.Itoa(slot))
+			}
 		default:
 			log.Warnf("Received command without opt parser: %v", command.Type)
 		}
@@ -334,6 +338,11 @@ func (c *Cluster) checkCluster() {
 		c.health = clusterWarn
 		return
 	}
+	// Update the clusterNodes variable
+	clusterNodes = &[]string{}
+	for _, node := range *clusterMembers {
+		*clusterNodes = append(*clusterNodes, node.ID)
+	}
 
 	nodesWithOpenSlots, openSlotsValid, err := c.validateOpenSlots(clusterMembers)
 	if err != nil {
@@ -351,14 +360,19 @@ func (c *Cluster) checkCluster() {
 		return
 	}
 
-	slotCoverageValid, err := c.validateSlotCoverage(clusterMembers)
+	openSlots, slotCoverageValid, err := c.validateSlotCoverage(clusterMembers)
 	if err != nil {
 		log.Warn("Could not validate slot coverage, skipping iteration")
 		return
 	}
 	if !slotCoverageValid {
-		err = c.planner.NewSlotCoverageFixupTask()
-		if err != nil {
+		slotPlanner, e := newSlotCoveragePlanner(c.nodeManager)
+		if e != nil {
+			log.Warnf("Could not initialize slot planner: %v", err)
+			return
+		}
+		e = c.planner.NewSlotCoverageFixupTask(*clusterNodes, openSlots, slotPlanner)
+		if e != nil {
 			log.Warnf("Could not create planner task: %v", err)
 		}
 		c.health = clusterWarn
@@ -601,17 +615,17 @@ func (c *Cluster) validateOpenSlots(clusterMembers *[]Node) (*[]Node, bool, erro
 }
 
 // validateSlotCoverage validates the slot coverage (Each slot need a responsible node)
-func (c *Cluster) validateSlotCoverage(clusterMembers *[]Node) (bool, error) {
+func (c *Cluster) validateSlotCoverage(clusterMembers *[]Node) ([]int, bool, error) {
 	log.Info("Checking slot coverage")
 	var slots []int
 	for _, node := range *clusterMembers {
 		nodeSlots, err := node.MySelf.allSlots()
 		if err != nil {
-			return false, fmt.Errorf("could not read node slots: %v", err)
+			return nil, false, fmt.Errorf("could not read node slots: %v", err)
 		}
 		slots = append(slots, nodeSlots...)
 	}
-	return len(slots) == pkg.ClusterHashSlots, nil
+	return findOpenSlots(slots), len(slots) == pkg.ClusterHashSlots, nil
 }
 
 // createNodeManagementTasks is responsible for creating tasks for node addition or removal

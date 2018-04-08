@@ -1,16 +1,20 @@
 package planner
 
+import (
+	log "github.com/sirupsen/logrus"
+)
+
 // HumanizeTaskType returns a human readable string based on a taskType
 func HumanizeTaskType(t int64) string {
 	switch taskType(t) {
 	case TaskCreateCluster:
 		return "CreateCluster"
-	case TaskCheckCluster:
-		return "CheckCluster"
+	case TaskMemberFixup:
+		return "MemberFixup"
+	case TaskFixOpenSlots:
+		return "FixOpenSlots"
 	case TaskFixSlotAllocation:
 		return "FixSlotAllocation"
-	case TaskRebalanceCluster:
-		return "Rebalance"
 	case TaskAddNodeCluster:
 		return "AddNode"
 	case TaskRemoveNodeCluster:
@@ -45,6 +49,8 @@ func HumanizeCommandType(t int64) string {
 		return "SetEpoch"
 	case CommandJoinCluster:
 		return "JoinCluster"
+	case CommandCountKeysInSlots:
+		return "CountKeysInSlots"
 	default:
 		return "CommandType_NOT_SET"
 	}
@@ -62,4 +68,19 @@ func HumanizeCommandStatus(status int64) string {
 	default:
 		return "CommandStatus_NOT_SET"
 	}
+}
+
+func shouldExecute(command *Command) bool {
+	if command.ShouldExecute != nil {
+		shouldExecute, err := (*command.ShouldExecute)(command)
+		if err != nil {
+			log.Warnf("Could not execute the shouldExecute func: %v", err)
+			return false
+		}
+		if !shouldExecute {
+			command.UpdateStatus(CommandFinished)
+		}
+		return shouldExecute
+	}
+	return true
 }

@@ -25,6 +25,21 @@ func newNodeManager(db *bolt.DB) (*nodeManager, error) {
 	}, nil
 }
 
+// getNode retrieves a node from the nodeStore
+func (nm *nodeManager) getNode(nodeID string) (*Node, error) {
+	var node Node
+	err := nm.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("nodes"))
+		v := b.Get([]byte(nodeID))
+		return json.Unmarshal(v, &node)
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return &node, nil
+}
+
 // updateNode updates a node based on the status received by the manager.
 func (nm *nodeManager) updateNode(node *Node) error {
 	return nm.db.Update(func(tx *bolt.Tx) error {

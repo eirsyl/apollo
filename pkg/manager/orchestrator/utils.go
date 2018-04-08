@@ -3,6 +3,8 @@ package orchestrator
 import (
 	"sort"
 	"strings"
+
+	"github.com/eirsyl/apollo/pkg"
 )
 
 // HumanizeClusterState returns a human readable string based on a clusterState
@@ -36,6 +38,14 @@ func HumanizeClusterHealth(health int64) string {
 
 // mapKeysToString extracts the keys from a map
 func mapKeysToString(m map[string]bool) (res []string) {
+	for key := range m {
+		res = append(res, key)
+	}
+	return
+}
+
+// mapKeysToInt extracts the keys from a map
+func mapKeysToInt(m map[int]bool) (res []int) {
 	for key := range m {
 		res = append(res, key)
 	}
@@ -93,4 +103,18 @@ func nodeSignatures(nodes *[]Node) (map[string][]Node, error) {
 	}
 
 	return signatures, nil
+}
+
+// findOpenSlots is used to find missing slots from a list of assigned slots
+func findOpenSlots(slots []int) []int {
+	missingSlots := map[int]bool{}
+	for i := 0; i < pkg.ClusterHashSlots; i++ {
+		missingSlots[i] = true
+	}
+
+	for _, i := range slots {
+		delete(missingSlots, i)
+	}
+
+	return mapKeysToInt(missingSlots)
 }
