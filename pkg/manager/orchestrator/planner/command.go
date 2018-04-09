@@ -23,11 +23,10 @@ func (t *commandType) Int64() int64 {
 var (
 	// CommandWaiting is used before a node has tried to execute the command
 	CommandWaiting commandStatus
-	// CommandRunning represents a command that is currently beeing executed by a
+	// CommandRunning represents a command that is currently being executed by a
 	CommandRunning commandStatus = 1
 	// CommandFinished represents a command that has terminated successfully
 	CommandFinished commandStatus = 2
-
 	// CommandAddSlots represents the command that is responsible for adding slots to a master node.
 	CommandAddSlots commandType = 1
 	// CommandSetReplicate represents the command used to set replication on a slave
@@ -38,6 +37,14 @@ var (
 	CommandJoinCluster commandType = 4
 	// CommandCountKeysInSlots is used to count keys given a list of keys
 	CommandCountKeysInSlots commandType = 5
+	// CommandSetSlotState changes the state of a set of slots
+	CommandSetSlotState commandType = 6
+	// CommandBumpEpoch bumps the current cluster epoch
+	CommandBumpEpoch commandType = 7
+	// CommandDelSlot deletes a slot from a node
+	CommandDelSlots commandType = 8
+	// CommandMigrateSlots is responsible for migrating keys from one node to another
+	CommandMigrateSlots commandType = 9
 )
 
 // CommandOpts is used to attach extra data to commands.

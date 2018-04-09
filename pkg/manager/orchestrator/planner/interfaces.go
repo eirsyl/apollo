@@ -41,10 +41,22 @@ type AllocationResult struct {
 type AdvancedAllocationResult struct {
 }
 
+type IsMasterPlanner interface {
+	IsMasterNode(nodeID string) (bool, error)
+}
+
 // SlotCoveragePlanner defined an interface used to decide where to store cluster slots
 type SlotCoveragePlanner interface {
+	IsMasterPlanner
 	AllocateSlotsWithoutKeys(counts map[string]SlotKeyCounts) (map[string]AllocationResult, error)
 	AllocateSlotsWithOneNode(counts map[string]SlotKeyCounts) (map[string]AllocationResult, error)
 	AllocateSlotsWithMultipleNodes(counts map[string]SlotKeyCounts) (map[string]AdvancedAllocationResult, error)
-	IsMasterNode(nodeID string) (bool, error)
+}
+
+type SlotCloserPlanner interface {
+	IsMasterPlanner
+	SlotOwners(slot int) ([]string, error)
+	MigratingNodes(slot int) ([]string, error)
+	ImportingNodes(slot int) ([]string, error)
+	GetAddr(nodeID string) (string, error)
 }

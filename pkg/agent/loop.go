@@ -276,6 +276,14 @@ func (r *ReconciliationLoop) performActions(commands []*contrib.NodeCommand) ([]
 			result, err = r.joinCluster(command)
 		case contrib.CommandCountKeysInSlots:
 			result, err = r.countKeysInSlots(command)
+		case contrib.CommandSetSlotState:
+			result, err = r.setSlotState(command)
+		case contrib.CommandBumpEpoch:
+			result, err = r.bumpEpoch(command)
+		case contrib.CommandDelSlots:
+			result, err = r.delSlot(command)
+		case contrib.CommandMigrateSlots:
+			result, err = r.migrateSlot(command)
 		default:
 			log.Warnf("Agent received unsupported command: %v %v", command.ID, command.Command)
 			result, err = contrib.NewNodeCommandResult(command.ID, []string{"UNSUPPORTED COMMAND"}, false)
@@ -421,6 +429,11 @@ func (r *ReconciliationLoop) joinCluster(command *contrib.NodeCommand) (*contrib
 
 func (r *ReconciliationLoop) countKeysInSlots(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
 	c := *command
+	if len(c.Arguments) == 0 {
+		log.Warn("Cannot count keys without slots")
+		return contrib.NewNodeCommandResult(c.ID, []string{"NO SLOTS"}, false)
+	}
+
 	var slots []int
 	for _, s := range c.Arguments {
 		slot, err := strconv.Atoi(s)
@@ -442,4 +455,108 @@ func (r *ReconciliationLoop) countKeysInSlots(command *contrib.NodeCommand) (*co
 	}
 
 	return contrib.NewNodeCommandResult(c.ID, results, success)
+}
+
+func (r *ReconciliationLoop) setSlotState(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	c := *command
+	if len(c.Arguments) < 3 {
+		log.Warn("state, nodeID and slots is required to set slot state")
+		return contrib.NewNodeCommandResult(c.ID, []string{"STATE,NODE_ID,SLOTS REQUIRED"}, false)
+	}
+
+	state := c.Arguments[0]
+	nodeID := c.Arguments[1]
+
+	var slots []string
+	for _, s := range c.Arguments[2:] {
+		slot, err := strconv.Atoi(s)
+		if err != nil {
+			log.Warnf("Invalid slot value: %v", s)
+		}
+		slots = append(slots, strconv.Itoa(slot))
+	}
+
+	var results []string
+	success := true
+	for _, slot := range slots {
+		res, err := r.redis.SetSlotState(slot, state, nodeID)
+		if err != nil {
+			log.Warnf("Redis error: %v", err)
+			success = false
+		}
+		results = append(results, res)
+	}
+
+	return contrib.NewNodeCommandResult(c.ID, results, success)
+}
+
+func (r *ReconciliationLoop) bumpEpoch(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	success := true
+	res, err := r.redis.BumpEpoch()
+	if err != nil {
+		log.Warnf("Redis error: %v", err)
+		success = false
+	}
+
+	return contrib.NewNodeCommandResult(command.ID, []string{res}, success)
+}
+
+func (r *ReconciliationLoop) delSlot(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	c := *command
+	if len(c.Arguments) == 0 {
+		log.Warn("Cannot sel slots without slots")
+		return contrib.NewNodeCommandResult(c.ID, []string{"NO SLOTS"}, false)
+	}
+
+	var slots []int
+	for _, s := range c.Arguments {
+		slot, err := strconv.Atoi(s)
+		if err != nil {
+			log.Warnf("Invalid slot value: %v", s)
+		}
+		slots = append(slots, slot)
+	}
+
+	res, err := r.redis.DelSlots(slots)
+	if err != nil {
+		log.Warnf("Redis error: %v", err)
+	}
+
+	return contrib.NewNodeCommandResult(c.ID, []string{res}, err == nil)
+}
+
+func (r *ReconciliationLoop) migrateSlot(command *contrib.NodeCommand) (*contrib.NodeCommandResult, error) {
+	c := *command
+	if len(c.Arguments) > 3 {
+		log.Warn("addr, fix and slots is required to migrate slot")
+		return contrib.NewNodeCommandResult(c.ID, []string{"ADDR,FIX,SLOTS REQUIRED"}, false)
+	}
+
+	addr := c.Arguments[0]
+	fixValue := c.Arguments[1]
+	var fix bool
+
+	if fixValue == "true" {
+		fix = true
+	} else {
+		fix = false
+	}
+
+	var slots []int
+	for _, s := range c.Arguments[2:] {
+		slot, err := strconv.Atoi(s)
+		if err != nil {
+			log.Warnf("Invalid slot value: %v", s)
+		}
+		slots = append(slots, slot)
+	}
+
+	var results []string
+	res, err := r.redis.MigrateSlots(slots, addr, fix)
+	if err != nil {
+		log.Warnf("Redis error: %v", err)
+	}
+	results = append(results, res)
+
+	return contrib.NewNodeCommandResult(c.ID, results, err == nil)
 }

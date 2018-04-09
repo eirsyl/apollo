@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/eirsyl/apollo/pkg"
+	"github.com/eirsyl/apollo/pkg/utils"
 )
 
 // HumanizeClusterState returns a human readable string based on a clusterState
@@ -36,31 +37,6 @@ func HumanizeClusterHealth(health int64) string {
 	}
 }
 
-// mapKeysToString extracts the keys from a map
-func mapKeysToString(m map[string]bool) (res []string) {
-	for key := range m {
-		res = append(res, key)
-	}
-	return
-}
-
-// mapKeysToInt extracts the keys from a map
-func mapKeysToInt(m map[int]bool) (res []int) {
-	for key := range m {
-		res = append(res, key)
-	}
-	return
-}
-
-// stringListToMap creates a map[string]bool based on a []string
-func stringListToMap(list []string) (res map[string]bool) {
-	res = make(map[string]bool)
-	for _, element := range list {
-		res[element] = true
-	}
-	return
-}
-
 // findClusterNodes parses a list of nodes and returns all cluster members reported by the given nodes
 func findClusterNodes(nodes *[]Node) ([]string, bool, error) {
 	members := map[string]bool{}
@@ -77,7 +53,7 @@ func findClusterNodes(nodes *[]Node) ([]string, bool, error) {
 		memberSignatures[signature] = true
 	}
 
-	return mapKeysToString(members), len(memberSignatures) == 1, nil
+	return utils.MapKeysToString(members), len(memberSignatures) == 1, nil
 }
 
 // nodeSignatures groups nodes by signature, not the same ass findClusterNodes
@@ -116,5 +92,5 @@ func findOpenSlots(slots []int) []int {
 		delete(missingSlots, i)
 	}
 
-	return mapKeysToInt(missingSlots)
+	return utils.MapKeysToInt(missingSlots)
 }

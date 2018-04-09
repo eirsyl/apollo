@@ -177,7 +177,17 @@ func (scp *slotCoveragePlanner) AllocateSlotsWithOneNode(counts map[string]plann
 }
 
 func (scp *slotCoveragePlanner) AllocateSlotsWithMultipleNodes(counts map[string]planner.SlotKeyCounts) (map[string]planner.AdvancedAllocationResult, error) {
-	// TODO: Implement this
+	/**
+	* TODO: Implement allocation
+	* Steps:
+	* 1. Find node with most keys within the actual slot
+	* 2. Target addslot
+	* 3. Target set slot stable
+	* 4. For all other nodes with keys
+	*	 * Set slot to importing
+	*    * Move keys from source to target
+	*    * Set slot to stable
+	 */
 	nodeSlots := scp.convertCounts(counts)
 	var slotsWithMultipleNodes []int
 	for slot, nodes := range nodeSlots {
@@ -195,4 +205,130 @@ func (scp *slotCoveragePlanner) IsMasterNode(nodeID string) (bool, error) {
 		return false, err
 	}
 	return node.MySelf.Role == "master", nil
+}
+
+type slotClosePlanner struct {
+	nm *nodeManager
+}
+
+func newSlotClosePlanner(nm *nodeManager) (*slotClosePlanner, error) {
+	return &slotClosePlanner{nm: nm}, nil
+}
+
+func (scp *slotClosePlanner) clusterNodes() ([]Node, error) {
+	var res []Node
+	clusterNodes, err := scp.nm.getClusterNodes()
+	if err != nil {
+		return nil, err
+	}
+	nodes, err := scp.nm.allNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	clusterNodeMap := map[string]bool{}
+	for _, node := range clusterNodes {
+		clusterNodeMap[node] = true
+	}
+
+	for _, node := range nodes {
+		if clusterNodeMap[node.ID] {
+			res = append(res, node)
+		}
+	}
+
+	return res, nil
+}
+
+func (scp *slotClosePlanner) SlotOwners(slot int) ([]string, error) {
+	var owners []string
+
+	clusterNodes, err := scp.clusterNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, node := range clusterNodes {
+		if node.MySelf.Role == "master" {
+			slots, err := node.MySelf.allSlots()
+			if err != nil {
+				return nil, err
+			}
+			for _, s := range slots {
+				if s == slot {
+					owners = append(owners, node.ID)
+				}
+			}
+		}
+	}
+
+	return owners, nil
+}
+
+func (scp *slotClosePlanner) MigratingNodes(slot int) ([]string, error) {
+	var res []string
+
+	clusterNodes, err := scp.clusterNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, node := range clusterNodes {
+		if node.MySelf.Role == "master" {
+			openSlots, err := node.MySelf.openSlots()
+			if err != nil {
+				return nil, err
+			}
+
+			for _, s := range *openSlots {
+				if slot == s.slot && s.action == migrating {
+					res = append(res, node.ID)
+				}
+			}
+		}
+	}
+
+	return res, nil
+}
+
+func (scp *slotClosePlanner) ImportingNodes(slot int) ([]string, error) {
+	var res []string
+
+	clusterNodes, err := scp.clusterNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, node := range clusterNodes {
+		if node.MySelf.Role == "master" {
+			openSlots, err := node.MySelf.openSlots()
+			if err != nil {
+				return nil, err
+			}
+
+			for _, s := range *openSlots {
+				if slot == s.slot && s.action == importing {
+					res = append(res, node.ID)
+				}
+			}
+		}
+	}
+
+	return res, nil
+}
+
+func (scp *slotClosePlanner) IsMasterNode(nodeID string) (bool, error) {
+	node, err := scp.nm.getNode(nodeID)
+	if err != nil {
+		return false, err
+	}
+	return node.MySelf.Role == "master", nil
+}
+
+func (scp *slotClosePlanner) GetAddr(nodeID string) (string, error) {
+	node, err := scp.nm.getNode(nodeID)
+	if err != nil {
+		return "", err
+	}
+	return node.Addr, nil
 }

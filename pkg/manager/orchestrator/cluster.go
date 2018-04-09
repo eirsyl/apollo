@@ -13,6 +13,7 @@ import (
 	"github.com/eirsyl/apollo/pkg"
 	pb "github.com/eirsyl/apollo/pkg/api"
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator/planner"
+	"github.com/eirsyl/apollo/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -267,6 +268,28 @@ func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*pb.NextExecution
 			for _, slot := range command.Opts.GetKIL("slots") {
 				arguments = append(arguments, strconv.Itoa(slot))
 			}
+		case planner.CommandSetSlotState:
+			arguments = []string{
+				command.Opts.GetKS("state"),
+				command.Opts.GetKS("nodeID"),
+			}
+			for _, slot := range command.Opts.GetKIL("slots") {
+				arguments = append(arguments, strconv.Itoa(slot))
+			}
+		case planner.CommandBumpEpoch:
+			arguments = []string{}
+		case planner.CommandDelSlots:
+			for _, slot := range command.Opts.GetKIL("slots") {
+				arguments = append(arguments, strconv.Itoa(slot))
+			}
+		case planner.CommandMigrateSlots:
+			arguments = []string{
+				command.Opts.GetKS("addr"),
+				command.Opts.GetKS("fix"),
+			}
+			for _, slot := range command.Opts.GetKIL("slots") {
+				arguments = append(arguments, strconv.Itoa(slot))
+			}
 		default:
 			log.Warnf("Received command without opt parser: %v", command.Type)
 		}
@@ -344,15 +367,19 @@ func (c *Cluster) checkCluster() {
 		*clusterNodes = append(*clusterNodes, node.ID)
 	}
 
-	nodesWithOpenSlots, openSlotsValid, err := c.validateOpenSlots(clusterMembers)
+	nodesWithOpenSlots, openSlots, openSlotsValid, err := c.validateOpenSlots(clusterMembers)
 	if err != nil {
 		log.Warn("Could not validate open slots, skipping iteration")
 		return
 	}
 	if !openSlotsValid {
 		log.Warnf("Nodes with open slots: %d", len(*nodesWithOpenSlots))
-
-		err = c.planner.NewOpenSlotsFixupTask()
+		closePlanner, e := newSlotClosePlanner(c.nodeManager)
+		if e != nil {
+			log.Warnf("Could not intialize slot close planner: %v", e)
+			return
+		}
+		err = c.planner.NewOpenSlotsFixupTask(*clusterNodes, openSlots, closePlanner)
 		if err != nil {
 			log.Warnf("Could not create planner task: %v", err)
 		}
@@ -590,7 +617,7 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 	}
 
 	// Update addable nodes for later usage by the addNode task
-	err = c.nodeManager.setEmptyNodes(mapKeysToString(addableNodes))
+	err = c.nodeManager.setEmptyNodes(utils.MapKeysToString(addableNodes))
 	if err != nil {
 		log.Warnf("Could not set addable nodes: %v", err)
 	}
@@ -599,19 +626,30 @@ func (c *Cluster) validateClusterMembers(onlineNodes *[]Node, clusterNodes *[]st
 }
 
 // validateOpenSlots checks if the cluster has open slots
-func (c *Cluster) validateOpenSlots(clusterMembers *[]Node) (*[]Node, bool, error) {
+func (c *Cluster) validateOpenSlots(clusterMembers *[]Node) (*[]Node, []int, bool, error) {
 	log.Infof("Checking for open slots")
 	var n []Node
+	var slots []int
+	slotMap := map[int]bool{}
+
 	for _, node := range *clusterMembers {
 		openSlots, err := node.MySelf.openSlots()
 		if err != nil {
-			return nil, false, err
+			return nil, nil, false, err
 		}
 		if len(*openSlots) != 0 {
 			n = append(n, node)
+			for _, os := range *openSlots {
+				slotMap[os.slot] = true
+			}
 		}
 	}
-	return &n, len(n) == 0, nil
+
+	for slot := range slotMap {
+		slots = append(slots, slot)
+	}
+
+	return &n, slots, len(n) == 0, nil
 }
 
 // validateSlotCoverage validates the slot coverage (Each slot need a responsible node)

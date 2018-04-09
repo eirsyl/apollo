@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/coreos/bbolt"
+	"github.com/eirsyl/apollo/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -116,7 +117,7 @@ func (nm *nodeManager) garbageCollectNodes() error {
 		return err
 	}
 
-	n := stringListToMap(clusterNodes)
+	n := utils.StringListToMap(clusterNodes)
 	collected := 0
 
 	return nm.db.Update(func(tx *bolt.Tx) error {

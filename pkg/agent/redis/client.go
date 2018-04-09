@@ -7,6 +7,10 @@ import (
 
 	"strconv"
 
+	"errors"
+
+	"time"
+
 	"github.com/eirsyl/apollo/pkg/utils"
 	goRedis "github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
@@ -198,13 +202,97 @@ func (c *Client) Replicate(nodeID string) (string, error) {
 // SetEpoch configures node cluster epoch
 func (c *Client) SetEpoch(epoch int) (string, error) {
 	log.Infof("Setting cluster epoch: %v", epoch)
-	return "", nil
+	e := strconv.Itoa(epoch)
+	cmd := goRedis.NewStringCmd("cluster", "set-config-epoch", e)
+	err := c.redis.Process(cmd)
+	if err != nil {
+		return "", err
+	}
+	return cmd.Result()
 }
 
 // CountKeysInSlot counts the count of keys in a given slot
 func (c *Client) CountKeysInSlot(slot int) (int64, error) {
 	log.Infof("Counting keys in slot: %d", slot)
-	return c.redis.ClusterCountKeysInSlot(slot).Result()
+	res, err := c.redis.ClusterCountKeysInSlot(slot).Result()
+	log.Infof("Counted keys for slot %d: %d", slot, res)
+	return res, err
+}
+
+// SetSlotState updates a slot state
+func (c *Client) SetSlotState(args ...interface{}) (string, error) {
+	if len(args) < 2 {
+		return "", errors.New("at least 2 args is required")
+	}
+	slot := args[0].(string)
+	state := args[1].(string)
+	nodeID := args[2].(string)
+
+	log.Infof("Updating slot state: %s %s", slot, state)
+	var cmd *goRedis.StringCmd
+	if state != "stable" {
+		cmd = goRedis.NewStringCmd("cluster", "setslot", slot, state, nodeID)
+	} else {
+		cmd = goRedis.NewStringCmd("cluster", "setslot", slot, state)
+	}
+	err := c.redis.Process(cmd)
+	if err != nil {
+		return "", err
+	}
+	return cmd.Result()
+}
+
+// BumpEpoch increments the cluster epoch
+func (c *Client) BumpEpoch() (string, error) {
+	log.Info("Bumping cluster epoch")
+	cmd := goRedis.NewStringCmd("cluster", "bumpepoch")
+	err := c.redis.Process(cmd)
+	if err != nil {
+		return "", err
+	}
+	return cmd.Result()
+}
+
+// DelSlot deletes information about a slot
+func (c *Client) DelSlots(slots []int) (string, error) {
+	log.Infof("Running delslots: %v", slots)
+	return c.redis.ClusterDelSlots(slots...).Result()
+}
+
+// MigrateSlots moves slots from one node to another
+func (c *Client) MigrateSlots(slots []int, addr string, fix bool) (string, error) {
+	host, p := utils.GetHostPort(addr)
+	port := strconv.Itoa(p)
+
+	getKeysInSlot := func(slot string) ([]string, error) {
+		cmd := goRedis.NewStringSliceCmd("cluster", "getkeysinslot", slot, 100)
+		err := c.redis.Process(cmd)
+		if err != nil {
+			return nil, err
+		}
+		return cmd.Result()
+	}
+
+	for _, slot := range slots {
+		s := strconv.Itoa(slot)
+		for {
+			keys, err := getKeysInSlot(s)
+			if err != nil {
+				return "", err
+			}
+			if len(keys) == 0 {
+				break
+			}
+			for _, key := range keys {
+				_, err := c.redis.Migrate(host, port, key, 0, 10*time.Second).Result()
+				if err != nil {
+					return "", err
+				}
+			}
+		}
+	}
+
+	return "", nil
 }
 
 /*

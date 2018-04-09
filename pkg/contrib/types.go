@@ -16,6 +16,14 @@ const (
 	CommandJoinCluster Command = 4
 	// CommandCountKeysInSlots is used to count keys given a list of slots.
 	CommandCountKeysInSlots Command = 5
+	// CommandSetSlotState updates slot state
+	CommandSetSlotState Command = 6
+	// CommandBumpEpoch increments cluster epoch
+	CommandBumpEpoch Command = 7
+	// CommandDelSlots deletes a slot from the node
+	CommandDelSlots Command = 8
+	// CommandMigrateSlots migrates a slot from one node to another
+	CommandMigrateSlots Command = 9
 )
 
 // NodeCommand stores a command that the manager issues to an agent
@@ -39,6 +47,14 @@ func NewNodeCommand(id string, command int64, arguments []string) (*NodeCommand,
 		commandType = CommandJoinCluster
 	case 5:
 		commandType = CommandCountKeysInSlots
+	case 6:
+		commandType = CommandSetSlotState
+	case 7:
+		commandType = CommandBumpEpoch
+	case 8:
+		commandType = CommandDelSlots
+	case 9:
+		commandType = CommandMigrateSlots
 	default:
 		return nil, errors.New("Unsupported command type")
 	}

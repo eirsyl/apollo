@@ -115,6 +115,8 @@ func (t *Task) UpdateStatus() {
 		t.lock.Unlock()
 		if err != nil {
 			log.Warnf("Could not run internal task processing: %v", err)
+			t.Status = StatusExecuted
+			return
 		}
 	}
 
