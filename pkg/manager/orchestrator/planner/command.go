@@ -41,7 +41,7 @@ var (
 	CommandSetSlotState commandType = 6
 	// CommandBumpEpoch bumps the current cluster epoch
 	CommandBumpEpoch commandType = 7
-	// CommandDelSlot deletes a slot from a node
+	// CommandDelSlots deletes a slot from a node
 	CommandDelSlots commandType = 8
 	// CommandMigrateSlots is responsible for migrating keys from one node to another
 	CommandMigrateSlots commandType = 9

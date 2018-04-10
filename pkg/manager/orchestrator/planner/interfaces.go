@@ -39,24 +39,34 @@ type AllocationResult struct {
 
 // AdvancedAllocationResult stores slot allocation decisions
 type AdvancedAllocationResult struct {
+	Nodes  []string
+	Master string
 }
 
+// IsMasterPlanner contains a function that checks if a node is master
 type IsMasterPlanner interface {
 	IsMasterNode(nodeID string) (bool, error)
 }
 
-// SlotCoveragePlanner defined an interface used to decide where to store cluster slots
-type SlotCoveragePlanner interface {
-	IsMasterPlanner
-	AllocateSlotsWithoutKeys(counts map[string]SlotKeyCounts) (map[string]AllocationResult, error)
-	AllocateSlotsWithOneNode(counts map[string]SlotKeyCounts) (map[string]AllocationResult, error)
-	AllocateSlotsWithMultipleNodes(counts map[string]SlotKeyCounts) (map[string]AdvancedAllocationResult, error)
+// GetAddrPlanner contains a function for retrieving node addresses
+type GetAddrPlanner interface {
+	GetAddr(nodeID string) (string, error)
 }
 
+// SlotCoveragePlanner defines an interface used to decide where to store cluster slots
+type SlotCoveragePlanner interface {
+	IsMasterPlanner
+	GetAddrPlanner
+	AllocateSlotsWithoutKeys(counts map[string]SlotKeyCounts) (map[string]AllocationResult, error)
+	AllocateSlotsWithOneNode(counts map[string]SlotKeyCounts) (map[string]AllocationResult, error)
+	AllocateSlotsWithMultipleNodes(counts map[string]SlotKeyCounts) (map[int]AdvancedAllocationResult, error)
+}
+
+// SlotCloserPlanner defines an interface used when fixing open slot problems
 type SlotCloserPlanner interface {
 	IsMasterPlanner
+	GetAddrPlanner
 	SlotOwners(slot int) ([]string, error)
 	MigratingNodes(slot int) ([]string, error)
 	ImportingNodes(slot int) ([]string, error)
-	GetAddr(nodeID string) (string, error)
 }

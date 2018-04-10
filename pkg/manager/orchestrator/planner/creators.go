@@ -108,7 +108,7 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 // NewClusterMemberFixupTask tries to notify agents about the cluster topology in order to fix
 // cluster partitions
 func (p *Planner) NewClusterMemberFixupTask() error {
-	// TODO: Cluster does not agree on slot configuration. This has to be fixed manually by a system administrator.
+	// TODO: Cluster does not agree on member configuration. This has to be fixed manually by a system administrator.
 	log.Warn("Cluster configuration is inconsistent, the manager cannot fix this. Admin interference is required.")
 	return nil
 }
@@ -221,14 +221,12 @@ func (p *Planner) NewOpenSlotsFixupTask(clusterNodes []string, openSlots []int, 
 					if err != nil {
 						return err
 					}
-					break
 					importing = utils.RemoveFromStringList(importing, owner)
 					migrating = utils.RemoveFromStringList(migrating, owner)
 				case 1:
 					// We have the owner, continue without actions
 					owner = owners[0]
 					log.Infof("Using %s as owner, this is the only node that reports slot ownership", owner)
-					break
 				default:
 					// Multiple owners, define a owner and continue
 					ownerKeys := map[string]SlotKeyCounts{}
@@ -402,6 +400,7 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 
 			var newCommands []*Command
 
+			// Case 1: No nodes have keys belonging to the slot
 			slotAssignments, e := planner.AllocateSlotsWithoutKeys(keys)
 			if e != nil {
 				return e
@@ -416,6 +415,7 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 				newCommands = append(newCommands, command)
 			}
 
+			// Case 2: One node have keys belonging to the slot
 			slotAssignments, e = planner.AllocateSlotsWithOneNode(keys)
 			if e != nil {
 				return e
@@ -430,13 +430,67 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 				newCommands = append(newCommands, command)
 			}
 
+			// Case 3: Multiple nodes have keys belonging to the slot
 			advancedSlotAssignments, e := planner.AllocateSlotsWithMultipleNodes(keys)
 			if e != nil {
 				return e
 			}
-			for node, allocation := range advancedSlotAssignments {
-				// TODO: Implement multiple nodes with keys
-				log.Infof("[WIP] Multiple nodes with keys: %s %v", node, allocation)
+			for slot, allocation := range advancedSlotAssignments {
+				target := allocation.Master
+
+				addSlotOpts := *NewCommandOpts()
+				addSlotOpts.AddKIL("slots", []int{slot})
+				addSlotCmd, e := NewCommand(target, CommandAddSlots, addSlotOpts, keysCount)
+				if e != nil {
+					return e
+				}
+				newCommands = append(newCommands, addSlotCmd)
+
+				setSlotOpts := *NewCommandOpts()
+				setSlotOpts.AddKIL("slots", []int{slot})
+				setSlotOpts.AddKS("state", "stable")
+				setSlotCmd, e := NewCommand(target, CommandSetSlotState, setSlotOpts, []*Command{addSlotCmd})
+				if e != nil {
+					return e
+				}
+				newCommands = append(newCommands, setSlotCmd)
+
+				for _, node := range allocation.Nodes {
+					if node == allocation.Master {
+						continue
+					}
+
+					nodeImportingOpts := *NewCommandOpts()
+					nodeImportingOpts.AddKIL("slots", []int{slot})
+					nodeImportingOpts.AddKS("state", "importing")
+					nodeImportingOpts.AddKS("nodeID", allocation.Master)
+					nodeImportingCmd, err := NewCommand(node, CommandSetSlotState, nodeImportingOpts, []*Command{setSlotCmd})
+					if err != nil {
+						return err
+					}
+
+					masterAddr, err := planner.GetAddr(allocation.Master)
+					if err != nil {
+						return nil
+					}
+
+					migrateCommands, err := migrateSlot(node, allocation.Master, masterAddr, nil, slot, true, true, []*Command{nodeImportingCmd})
+					if err != nil {
+						return err
+					}
+
+					nodeStableOpts := *NewCommandOpts()
+					nodeStableOpts.AddKIL("slots", []int{slot})
+					nodeStableOpts.AddKS("state", "stable")
+					nodeStableCmd, err := NewCommand(node, CommandSetSlotState, nodeStableOpts, migrateCommands)
+					if err != nil {
+						return err
+					}
+
+					newCommands = append(newCommands, nodeImportingCmd)
+					newCommands = append(newCommands, migrateCommands...)
+					newCommands = append(newCommands, nodeStableCmd)
+				}
 			}
 
 			task.Commands = append(task.Commands, newCommands...)

@@ -253,7 +253,7 @@ func (c *Client) BumpEpoch() (string, error) {
 	return cmd.Result()
 }
 
-// DelSlot deletes information about a slot
+// DelSlots deletes information about a slot
 func (c *Client) DelSlots(slots []int) (string, error) {
 	log.Infof("Running delslots: %v", slots)
 	return c.redis.ClusterDelSlots(slots...).Result()

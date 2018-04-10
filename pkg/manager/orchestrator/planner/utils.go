@@ -224,6 +224,9 @@ func slotCoverageMultipleMasters(owner string, nodesWithKeys []string, slot int,
 		co2.AddKS("state", "importing")
 		co2.AddKS("nodeID", owner)
 		command2, err := NewCommand(node, CommandSetSlotState, co2, append(dependencies, command1))
+		if err != nil {
+			return nil, err
+		}
 
 		commands = append(commands, command1)
 		commands = append(commands, command2)

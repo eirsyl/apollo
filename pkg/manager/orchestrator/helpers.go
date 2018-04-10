@@ -176,9 +176,8 @@ func (scp *slotCoveragePlanner) AllocateSlotsWithOneNode(counts map[string]plann
 	return res, nil
 }
 
-func (scp *slotCoveragePlanner) AllocateSlotsWithMultipleNodes(counts map[string]planner.SlotKeyCounts) (map[string]planner.AdvancedAllocationResult, error) {
+func (scp *slotCoveragePlanner) AllocateSlotsWithMultipleNodes(counts map[string]planner.SlotKeyCounts) (map[int]planner.AdvancedAllocationResult, error) {
 	/**
-	* TODO: Implement allocation
 	* Steps:
 	* 1. Find node with most keys within the actual slot
 	* 2. Target addslot
@@ -190,13 +189,31 @@ func (scp *slotCoveragePlanner) AllocateSlotsWithMultipleNodes(counts map[string
 	 */
 	nodeSlots := scp.convertCounts(counts)
 	var slotsWithMultipleNodes []int
+	res := map[int]planner.AdvancedAllocationResult{}
 	for slot, nodes := range nodeSlots {
 		if len(nodes) > 1 {
 			slotsWithMultipleNodes = append(slotsWithMultipleNodes, slot)
+			var maxCount int
+			var master string
+
+			for _, node := range nodes {
+				count, ok := counts[node]
+				if ok {
+					if master == "" || count.Counts[slot] > maxCount {
+						maxCount = count.Counts[slot]
+						master = node
+					}
+				}
+			}
+
+			res[slot] = planner.AdvancedAllocationResult{
+				Nodes:  nodes,
+				Master: master,
+			}
 		}
 	}
-	log.Info("[WIP] Slots with multiple nodes: %v", slotsWithMultipleNodes)
-	return map[string]planner.AdvancedAllocationResult{}, nil
+	log.Info("Slots with multiple nodes: %v", slotsWithMultipleNodes)
+	return res, nil
 }
 
 func (scp *slotCoveragePlanner) IsMasterNode(nodeID string) (bool, error) {
@@ -205,6 +222,14 @@ func (scp *slotCoveragePlanner) IsMasterNode(nodeID string) (bool, error) {
 		return false, err
 	}
 	return node.MySelf.Role == "master", nil
+}
+
+func (scp *slotCoveragePlanner) GetAddr(nodeID string) (string, error) {
+	node, err := scp.nm.getNode(nodeID)
+	if err != nil {
+		return "", err
+	}
+	return node.Addr, nil
 }
 
 type slotClosePlanner struct {
