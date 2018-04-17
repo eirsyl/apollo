@@ -508,30 +508,87 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 }
 
 // NewAddNodeTask add additional nodes to the cluster
-func (p *Planner) NewAddNodeTask() error {
+func (p *Planner) NewAddNodeTask(nodes []string, planner AddNodePlanner, replication int) error {
 	/**
 	 * Assign as master or replicate existing master?
 	 * Pick master with the least replicas
 	 * Send CLUSTER MEET to the node
 	 * Tell node to replicate master
+	 *
+	 * A rebalancing task generated in the next iteration add slots to newly assigned masters
 	 */
-	var commands []*Command
+	var tasks []*Task
 
-	task, err := NewTask(TaskAddNodeCluster, commands)
+	plans, err := planner.GetNodePlans(nodes, replication)
 	if err != nil {
 		return err
 	}
 
+	nodeToJoin, err := planner.GetNodeToJoin()
+	if err != nil {
+		return nil
+	}
+
+	// Create node task per plan
+	for _, plan := range plans {
+		if plan.IsMaster {
+			var commands []*Command
+
+			co := *NewCommandOpts()
+			co.AddKS("node", nodeToJoin)
+			command, err := NewCommand(plan.NodeID, CommandJoinCluster, co, nil)
+			if err != nil {
+				return err
+			}
+			commands = append(commands, command)
+
+			task, err := NewTask(TaskAddNodeCluster, commands)
+			if err != nil {
+				return err
+			}
+			tasks = append(tasks, task)
+		} else if !plan.IsMaster && plan.ReplicationTarget != "" {
+			// Replicate
+			var commands []*Command
+
+			co := *NewCommandOpts()
+			co.AddKS("node", nodeToJoin)
+			command, err := NewCommand(plan.NodeID, CommandJoinCluster, co, nil)
+			if err != nil {
+				return err
+			}
+			commands = append(commands, command)
+
+			co = *NewCommandOpts()
+			co.AddKS("target", plan.ReplicationTarget)
+			command, err = NewCommand(plan.NodeID, CommandSetReplicate, co, commands)
+			if err != nil {
+				return err
+			}
+			commands = append(commands, command)
+
+			task, err := NewTask(TaskAddNodeCluster, commands)
+			if err != nil {
+				return err
+			}
+			tasks = append(tasks, task)
+		} else {
+			log.Warnf("Planner generated invalid node plan: wrong parameters")
+			return nil
+		}
+	}
+
 	p.lock.Lock()
-	p.tasks = append(p.tasks, task)
+	p.tasks = append(p.tasks, tasks...)
 	p.lock.Unlock()
 
 	return nil
 }
 
 // NewRemoveNodeTask add additional nodes to the cluster
-func (p *Planner) NewRemoveNodeTask() error {
+func (p *Planner) NewRemoveNodeTask(nodes []string) error {
 	/**
+	 * TODO: Node removal isn't a high priority task, implementing this is considered as further work.
 	 * Reshard slots away
 	 * Loop cluster members
 	 * If node replicates this node, replicate another
@@ -539,6 +596,8 @@ func (p *Planner) NewRemoveNodeTask() error {
 	 * Shutdown node
 	 */
 	var commands []*Command
+
+	log.Warn("The manager should have removed nodes from cluster but functionality is missing: %v", nodes)
 
 	task, err := NewTask(TaskRemoveNodeCluster, commands)
 	if err != nil {

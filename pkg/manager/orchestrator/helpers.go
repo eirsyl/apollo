@@ -357,3 +357,104 @@ func (scp *slotClosePlanner) GetAddr(nodeID string) (string, error) {
 	}
 	return node.Addr, nil
 }
+
+type addNodePlanner struct {
+	nm *nodeManager
+}
+
+func newAddNodePlanner(nm *nodeManager) (*addNodePlanner, error) {
+	return &addNodePlanner{
+		nm: nm,
+	}, nil
+}
+
+func (anp *addNodePlanner) GetNodePlans(nodes []string, replication int) ([]planner.AddNodePlan, error) {
+	nodeMap, err := anp.nm.allNodes()
+	if err != nil {
+		return nil, err
+	}
+	members, err := anp.nm.getClusterNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	masters := map[string]int{}
+
+	// Construct master -> replica table
+	for _, member := range members {
+		memberNode, ok := nodeMap[member]
+		if !ok {
+			continue
+		}
+		if memberNode.MarkedForDeletion {
+			continue
+		}
+
+		if memberNode.MySelf.Role == "master" {
+			_, ok := masters[memberNode.ID]
+			if !ok {
+				masters[memberNode.ID] = 0
+			}
+		} else {
+			_, ok := masters[memberNode.MySelf.MasterID]
+			if !ok {
+				masters[memberNode.MySelf.MasterID] = 1
+			} else {
+				masters[memberNode.MySelf.MasterID] += 1
+			}
+		}
+	}
+
+	var plans []planner.AddNodePlan
+
+	// Assign node roles
+	for _, node := range nodes {
+		var mastersWithoutReplicas []string
+		for master, replicas := range masters {
+			if replicas < replication {
+				log.Infof("Master has less replicas than required. Node %s has %d but %d is required.", master, replicas, replication)
+				mastersWithoutReplicas = append(mastersWithoutReplicas, master)
+			}
+		}
+		if len(mastersWithoutReplicas) == 0 {
+			// Assign master-role to the node
+			log.Infof("Add node: %s master", node)
+			plans = append(plans, planner.AddNodePlan{
+				NodeID:   node,
+				IsMaster: true,
+			})
+			masters[node] = 0
+		} else {
+			// Pick random node to replicate
+			log.Infof("Add node: %s replica", node)
+			replicationTargetIndex := rand.Int() % len(mastersWithoutReplicas)
+			replicationTarget := mastersWithoutReplicas[replicationTargetIndex]
+			plans = append(plans, planner.AddNodePlan{
+				NodeID:            node,
+				IsMaster:          false,
+				ReplicationTarget: replicationTarget,
+			})
+			masters[replicationTarget] += 1
+		}
+	}
+
+	return plans, nil
+}
+
+func (anp *addNodePlanner) GetNodeToJoin() (string, error) {
+	clusterMembers, err := anp.nm.getClusterNodes()
+	if err != nil {
+		return "", nil
+	}
+
+	if len(clusterMembers) > 0 {
+		nodeID := clusterMembers[0]
+		node, err := anp.nm.getNode(nodeID)
+		if err != nil {
+			return "", err
+		}
+		return node.Addr, nil
+	}
+
+	return "", errors.New("no existing cluster members")
+}

@@ -416,9 +416,17 @@ func (c *Cluster) checkCluster() {
 	}
 
 	// Cluster healthy start the process of adding or removing a node from the cluster
-	err = c.createNodeManagementTasks()
+	processingNodes, err := c.createNodeManagementTasks()
 	if err != nil {
 		log.Warnf("Could not initialize node addition/removal tasks: %v", err)
+	}
+
+	if !processingNodes {
+		// Check cluster balance if the cluster is clean and no nodes is pending addition or removal
+		err = c.balanceCluster()
+		if err != nil {
+			log.Warnf("Could not initialize cluster balancing: %v", err)
+		}
 	}
 }
 
@@ -667,28 +675,28 @@ func (c *Cluster) validateSlotCoverage(clusterMembers *[]Node) ([]int, bool, err
 }
 
 // createNodeManagementTasks is responsible for creating tasks for node addition or removal
-func (c *Cluster) createNodeManagementTasks() error {
+func (c *Cluster) createNodeManagementTasks() (bool, error) {
 	/**
 	 * Consider online nodes only, this works because the cluster validation, or caller
 	 * of this function skips the execution if not every agent is online.
 	 */
 	nodes, err := c.nodeManager.onlineNodes()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Empty nodes lookup
 	em, err := c.nodeManager.getEmptyNodes()
 	if err != nil {
-		return err
+		return false, err
 	}
 	emptyNodes := map[string]bool{}
 	for _, n := range em {
 		emptyNodes[n] = true
 	}
 
-	var addableNodes []Node
-	var removableNodes []Node
+	var addableNodes []string
+	var removableNodes []string
 
 	for _, n := range nodes {
 		if c.nodeManager.isNodePending(n.ID) {
@@ -696,23 +704,33 @@ func (c *Cluster) createNodeManagementTasks() error {
 			continue
 		}
 		if emptyNodes[n.ID] {
-			addableNodes = append(addableNodes, n)
+			addableNodes = append(addableNodes, n.ID)
 		} else if n.MarkedForDeletion {
-			removableNodes = append(removableNodes, n)
+			removableNodes = append(removableNodes, n.ID)
 		}
 	}
 
-	if len(addableNodes) > 0 {
-		err = c.planner.NewAddNodeTask()
+	// Remove nodes first in order to not assign nodes as replicas for nodes marked for removal
+	if len(removableNodes) > 0 {
+		err = c.planner.NewRemoveNodeTask(removableNodes)
 		if err != nil {
-			return err
+			return false, err
 		}
-	} else if len(removableNodes) > 0 {
-		err = c.planner.NewRemoveNodeTask()
+	} else if len(addableNodes) > 0 {
+		addNodePlanner, err := newAddNodePlanner(c.nodeManager)
 		if err != nil {
-			return err
+			return false, err
+		}
+		err = c.planner.NewAddNodeTask(addableNodes, addNodePlanner, c.desiredReplication)
+		if err != nil {
+			return false, err
 		}
 	}
 
+	return len(addableNodes) > 0 || len(removableNodes) > 0, nil
+}
+
+func (c *Cluster) balanceCluster() error {
+	// Balance cluster checks the distribution of slots between the master modes.
 	return nil
 }

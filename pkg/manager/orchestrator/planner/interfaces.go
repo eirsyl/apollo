@@ -70,3 +70,15 @@ type SlotCloserPlanner interface {
 	MigratingNodes(slot int) ([]string, error)
 	ImportingNodes(slot int) ([]string, error)
 }
+
+type AddNodePlan struct {
+	NodeID            string
+	IsMaster          bool
+	ReplicationTarget string
+}
+
+// AddNodePlanner defines an interface used when adding a node to the cluster
+type AddNodePlanner interface {
+	GetNodePlans(nodes []string, replication int) ([]AddNodePlan, error)
+	GetNodeToJoin() (string, error)
+}
