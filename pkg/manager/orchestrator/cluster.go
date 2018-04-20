@@ -9,6 +9,10 @@ import (
 
 	"errors"
 
+	"sort"
+
+	"math"
+
 	"github.com/coreos/bbolt"
 	"github.com/eirsyl/apollo/pkg"
 	pb "github.com/eirsyl/apollo/pkg/api"
@@ -732,5 +736,125 @@ func (c *Cluster) createNodeManagementTasks() (bool, error) {
 
 func (c *Cluster) balanceCluster() error {
 	// Balance cluster checks the distribution of slots between the master modes.
+	threshold := 5.0
+	useEmptyMasters := true
+
+	nodes, err := c.nodeManager.allNodes()
+	if err != nil {
+		return err
+	}
+	clusterMembers, err := c.nodeManager.getClusterNodes()
+	if err != nil {
+		return err
+	}
+
+	masters := map[string]*Node{}
+	for _, clusterNode := range clusterMembers {
+		node, ok := nodes[clusterNode]
+		if !ok {
+			continue
+		}
+
+		if node.MySelf.Role != "master" {
+			continue
+		}
+
+		if !useEmptyMasters && node.IsEmpty {
+			continue
+		}
+		masters[clusterNode] = &node
+	}
+
+	weights, totalWeight := getNodeWeights(masters)
+	balances := map[string]int{}
+	unevenCluster := false
+	for _, node := range masters {
+		weight, ok := weights[node.ID]
+		if !ok {
+			return errors.New("could not retrieve node weight")
+		}
+		expected := (pkg.ClusterHashSlots / totalWeight) * weight
+		slots, err := node.MySelf.allSlots()
+		if err != nil {
+			return err
+		}
+		balances[node.ID] = len(slots) - int(expected)
+
+		overTreshold := false
+		if len(slots) > 0 {
+			errPercent := 100 - (100.0 * expected / float64(len(slots)))
+			if errPercent > threshold {
+				overTreshold = true
+			}
+		} else if expected > 0 {
+			overTreshold = true
+		}
+		if overTreshold {
+			unevenCluster = true
+		}
+	}
+
+	if !unevenCluster {
+		log.Info("Cluster is balanced, skipping rebalancing")
+		return nil
+	}
+
+	log.Info("Cluster is uneven balanced, initializing rebalancing tasks")
+
+	totalBalance := 0
+	for _, balance := range balances {
+		totalBalance += balance
+	}
+	// It's possible that totalBalance is not zero because of rounding, fix this
+	for totalBalance > 0 {
+		for node, balance := range balances {
+			if balance < 0 && totalBalance > 0 {
+				balances[node] -= 1
+				totalBalance -= 1
+			}
+		}
+	}
+
+	// Sort by balances
+	type nodeBalance struct {
+		nodeID  string
+		balance int
+	}
+	var sbalances []nodeBalance
+	for node, balance := range balances {
+		sbalances = append(sbalances, nodeBalance{nodeID: node, balance: balance})
+	}
+	sort.Slice(sbalances, func(i, j int) bool {
+		return sbalances[i].balance < sbalances[j].balance
+	})
+
+	dst_idx := 0
+	src_idx := len(sbalances) - 1
+	for dst_idx < src_idx {
+		dst := sbalances[dst_idx]
+		src := sbalances[src_idx]
+		var numSlots int
+		if math.Abs(float64(dst.balance)) < math.Abs(float64(src.balance)) {
+			numSlots = int(math.Abs(float64(dst.balance)))
+		} else {
+			numSlots = int(math.Abs(float64(src.balance)))
+		}
+
+		if numSlots > 0 {
+			log.Infof("Moving %d slots from %s to %s", numSlots, src.nodeID, dst.nodeID)
+
+		}
+
+		// Update balances
+		sbalances[dst_idx].balance += numSlots
+		sbalances[src_idx].balance -= numSlots
+		if sbalances[dst_idx].balance == 0 {
+			dst_idx += 1
+		}
+		if sbalances[src_idx].balance == 0 {
+			src_idx -= 1
+		}
+	}
+
 	return nil
 }
