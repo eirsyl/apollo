@@ -20,7 +20,9 @@ func HumanizeTaskType(t int64) string {
 	case TaskAddNodeCluster:
 		return "AddNode"
 	case TaskRemoveNodeCluster:
-		return "RemoveMode"
+		return "RemoveNode"
+	case TaskReshardCluster:
+		return "ReshardCluster"
 	default:
 		return "TaskType_NOT_SET"
 	}

@@ -610,3 +610,27 @@ func (p *Planner) NewRemoveNodeTask(nodes []string) error {
 
 	return nil
 }
+
+// NewMigrateSlotTask moves a slot from one node to another
+func (p *Planner) NewMigrateSlotTask(source string, destination string, destinationAddr string, masters []string, slots []int) error {
+	var commands []*Command
+
+	for _, slot := range slots {
+		migrateCommands, err := migrateSlot(source, destination, destinationAddr, masters, slot, true, false, nil)
+		if err != nil {
+			return err
+		}
+		commands = append(commands, migrateCommands...)
+	}
+
+	task, err := NewTask(TaskReshardCluster, commands)
+	if err != nil {
+		return err
+	}
+
+	p.lock.Lock()
+	p.tasks = append(p.tasks, task)
+	p.lock.Unlock()
+
+	return nil
+}

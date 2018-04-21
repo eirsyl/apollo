@@ -842,7 +842,21 @@ func (c *Cluster) balanceCluster() error {
 
 		if numSlots > 0 {
 			log.Infof("Moving %d slots from %s to %s", numSlots, src.nodeID, dst.nodeID)
-
+			reshardTable, err := getReshardTable(masters[src.nodeID], numSlots)
+			if err != nil {
+				return err
+			}
+			if len(reshardTable) != numSlots {
+				return errors.New("reshard table does not contain the required amount of slots")
+			}
+			var masterList []string
+			for _, master := range masters {
+				masterList = append(masterList, master.ID)
+			}
+			err = c.planner.NewMigrateSlotTask(src.nodeID, dst.nodeID, masters[dst.nodeID].Addr, masterList, reshardTable)
+			if err != nil {
+				return err
+			}
 		}
 
 		// Update balances

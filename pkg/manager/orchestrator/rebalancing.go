@@ -11,3 +11,17 @@ func getNodeWeights(nodes map[string]*Node) (map[string]float64, float64) {
 
 	return weights, totalWeight
 }
+
+func getReshardTable(source *Node, numSlots int) ([]int, error) {
+	// Pick slots from source with most slots
+	slots, err := source.MySelf.allSlots()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(slots) < numSlots {
+		numSlots = len(slots)
+	}
+
+	return slots[0:numSlots], nil
+}

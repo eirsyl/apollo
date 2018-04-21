@@ -108,7 +108,7 @@ func (c *Client) IsEmpty() (bool, error) {
 		return false, err
 	}
 
-	if !strings.Contains(cm, "cluster_known_nodes:1") {
+	if !strings.Contains(cm, "cluster_size:0") {
 		return false, nil
 	}
 

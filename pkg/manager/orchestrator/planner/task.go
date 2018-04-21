@@ -33,6 +33,8 @@ var (
 	TaskAddNodeCluster taskType = 5
 	// TaskRemoveNodeCluster is used to remove a node from the cluster
 	TaskRemoveNodeCluster taskType = 6
+	// TaskReshardCluster is used to reshard the cluster
+	TaskReshardCluster taskType = 7
 
 	// StatusWaiting is used for a task that is in the execution queue
 	StatusWaiting taskStatus
