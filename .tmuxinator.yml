@@ -52,6 +52,9 @@ windows:
       - redis-server --port 6006 --cluster-enabled yes --dbfilename node7.rdb --cluster-config-file node7.conf
       - redis-server --port 6007 --cluster-enabled yes --dbfilename node8.rdb --cluster-config-file node8.conf
       - redis-server --port 6008 --cluster-enabled yes --dbfilename node9.rdb --cluster-config-file node9.conf
+      - redis-server --port 6009 --cluster-enabled yes --dbfilename node10.rdb --cluster-config-file node10.conf
+      - redis-server --port 6010 --cluster-enabled yes --dbfilename node11.rdb --cluster-config-file node11.conf
+      - redis-server --port 6011 --cluster-enabled yes --dbfilename node12.rdb --cluster-config-file node12.conf
   - apollo:
       root: .
       panes:
@@ -64,4 +67,7 @@ windows:
       - bin/apollo agent --redis=127.0.0.1:6006 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack02"
       - bin/apollo agent --redis=127.0.0.1:6007 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack01"
       - bin/apollo agent --redis=127.0.0.1:6008 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack02"
+      - bin/apollo agent --redis=127.0.0.1:6009 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack02"
+      - bin/apollo agent --redis=127.0.0.1:6010 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack01"
+      - bin/apollo agent --redis=127.0.0.1:6011 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack02"
 
