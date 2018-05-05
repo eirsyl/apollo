@@ -52,7 +52,3 @@
 [[constraint]]
   branch = "master"
   name = "github.com/buger/goterm"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/common-nighthawk/go-figure"

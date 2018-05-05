@@ -28,8 +28,7 @@ root: .
 # Change the command to call tmux.  This can be used by derivatives/wrappers like byobu.
 # tmux_command: byobu
 
-# Specifies (by name or index) which window will be selected on project startup. If not set, the first window is used.
-# startup_window: editor
+# Specifies (by name or index) which window will be selected on project startup. If not set, the first window is used.  # startup_window: editor
 
 # Specifies (by index) which pane of the specified window will be selected on project startup. If not set, the first pane is used.
 # startup_pane: 1
@@ -50,6 +49,9 @@ windows:
       - redis-server --port 6003 --cluster-enabled yes --dbfilename node4.rdb --cluster-config-file node4.conf
       - redis-server --port 6004 --cluster-enabled yes --dbfilename node5.rdb --cluster-config-file node5.conf
       - redis-server --port 6005 --cluster-enabled yes --dbfilename node6.rdb --cluster-config-file node6.conf
+      - redis-server --port 6006 --cluster-enabled yes --dbfilename node7.rdb --cluster-config-file node7.conf
+      - redis-server --port 6007 --cluster-enabled yes --dbfilename node8.rdb --cluster-config-file node8.conf
+      - redis-server --port 6008 --cluster-enabled yes --dbfilename node9.rdb --cluster-config-file node9.conf
   - apollo:
       root: .
       panes:
@@ -59,4 +61,7 @@ windows:
       - bin/apollo agent --redis=127.0.0.1:6003 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack02"
       - bin/apollo agent --redis=127.0.0.1:6004 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack01"
       - bin/apollo agent --redis=127.0.0.1:6005 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack02"
+      - bin/apollo agent --redis=127.0.0.1:6006 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack02"
+      - bin/apollo agent --redis=127.0.0.1:6007 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack01"
+      - bin/apollo agent --redis=127.0.0.1:6008 --managerTLS=false --hostAnnotations "dc=eu-central-1 rack=rack02"
 
