@@ -144,6 +144,7 @@ func (c *Cluster) findClusterConfiguration() {
 		log.Infof("Nodes not empty, setting cluster to configured")
 		c.state = clusterConfigured
 	}
+	log.WithField("duration", time.Since(c.startTime)).Info("Configuration detected")
 }
 
 // configureCluster configures the redis nodes as a cluster if all the requirements is meet
