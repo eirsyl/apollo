@@ -161,6 +161,7 @@ func (c *Cluster) configureCluster() {
 	}
 
 	log.Infof("Generating cluster creation plan")
+	startTime := time.Now().UTC()
 	var nodeIds []string
 	for _, node := range nodes {
 		nodeIds = append(nodeIds, node.ID)
@@ -184,7 +185,7 @@ func (c *Cluster) configureCluster() {
 		log.Warnf("Could not calculate slots: %v", err)
 	}
 
-	err = c.planner.NewCreateClusterTask(slots)
+	err = c.planner.NewCreateClusterTask(slots, startTime)
 	if err != nil {
 		log.Infof("Could not generate cluster creation plan: %v", err)
 		return

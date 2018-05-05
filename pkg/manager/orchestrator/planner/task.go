@@ -3,6 +3,8 @@ package planner
 import (
 	"sync"
 
+	"time"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -51,15 +53,17 @@ type Task struct {
 	Commands       []*Command
 	ProcessResults func(task *Task) error
 	lock           sync.Mutex
+	startTime      time.Time
 }
 
 // NewTask creates a new task
-func NewTask(t taskType, commands []*Command) (*Task, error) {
+func NewTask(t taskType, commands []*Command, startTime time.Time) (*Task, error) {
 	task := &Task{
-		Type:     t,
-		Status:   StatusWaiting,
-		Commands: commands,
-		lock:     sync.Mutex{},
+		Type:      t,
+		Status:    StatusWaiting,
+		Commands:  commands,
+		lock:      sync.Mutex{},
+		startTime: startTime,
 	}
 	return task, nil
 }
@@ -147,5 +151,13 @@ L:
 	if status != t.Status {
 		log.Infof("Updating task status: %v %v", t.Type, status)
 		t.Status = status
+		if t.Status == StatusExecuted {
+			log.WithFields(
+				log.Fields{
+					"duration":  time.Since(t.startTime),
+					"operation": HumanizeTaskType(t.Type.Int64()),
+				},
+			).Info("Task completed successfully")
+		}
 	}
 }

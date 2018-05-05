@@ -5,6 +5,8 @@ import (
 
 	"errors"
 
+	"time"
+
 	"github.com/eirsyl/apollo/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,7 +25,7 @@ type OpenSlotsFixupOpts struct {
 
 // NewCreateClusterTask creates a new cluster creation task. This function is responsible for creating
 // the commands required to form a cluster.
-func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) error {
+func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts, startTime time.Time) error {
 
 	// Assign slots
 	slotAssignments := []*Command{}
@@ -93,7 +95,7 @@ func (p *Planner) NewCreateClusterTask(opts map[string]*CreateClusterNodeOpts) e
 	commands = append(commands, clusterJoin...)
 	commands = append(commands, replicationAssignments...)
 
-	task, err := NewTask(TaskCreateCluster, commands)
+	task, err := NewTask(TaskCreateCluster, commands, startTime)
 	if err != nil {
 		return err
 	}
@@ -151,7 +153,7 @@ func (p *Planner) NewOpenSlotsFixupTask(clusterNodes []string, openSlots []int, 
 	commands = append(commands, keysCount...)
 	log.Infof("Retrieved masters: %v", masters)
 
-	task, err := NewTask(TaskFixOpenSlots, commands)
+	task, err := NewTask(TaskFixOpenSlots, commands, time.Now().UTC())
 	if err != nil {
 		return err
 	}
@@ -370,7 +372,7 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 
 	commands = append(commands, keysCount...)
 
-	task, err := NewTask(TaskFixSlotAllocation, commands)
+	task, err := NewTask(TaskFixSlotAllocation, commands, time.Now().UTC())
 	if err != nil {
 		return err
 	}
@@ -542,7 +544,7 @@ func (p *Planner) NewAddNodeTask(nodes []string, planner AddNodePlanner, replica
 			}
 			commands = append(commands, command)
 
-			task, err := NewTask(TaskAddNodeCluster, commands)
+			task, err := NewTask(TaskAddNodeCluster, commands, time.Now().UTC())
 			if err != nil {
 				return err
 			}
@@ -567,7 +569,7 @@ func (p *Planner) NewAddNodeTask(nodes []string, planner AddNodePlanner, replica
 			}
 			commands = append(commands, command)
 
-			task, err := NewTask(TaskAddNodeCluster, commands)
+			task, err := NewTask(TaskAddNodeCluster, commands, time.Now().UTC())
 			if err != nil {
 				return err
 			}
@@ -599,7 +601,7 @@ func (p *Planner) NewRemoveNodeTask(nodes []string) error {
 
 	log.Warn("The manager should have removed nodes from cluster but functionality is missing: %v", nodes)
 
-	task, err := NewTask(TaskRemoveNodeCluster, commands)
+	task, err := NewTask(TaskRemoveNodeCluster, commands, time.Now().UTC())
 	if err != nil {
 		return err
 	}
@@ -614,6 +616,7 @@ func (p *Planner) NewRemoveNodeTask(nodes []string) error {
 // NewMigrateSlotTask moves a slot from one node to another
 func (p *Planner) NewMigrateSlotTask(source string, destination string, destinationAddr string, masters []string, slots []int) error {
 	var commands []*Command
+	startTime := time.Now().UTC()
 
 	for _, slot := range slots {
 		migrateCommands, err := migrateSlot(source, destination, destinationAddr, masters, slot, true, false, nil)
@@ -623,7 +626,7 @@ func (p *Planner) NewMigrateSlotTask(source string, destination string, destinat
 		commands = append(commands, migrateCommands...)
 	}
 
-	task, err := NewTask(TaskReshardCluster, commands)
+	task, err := NewTask(TaskReshardCluster, commands, startTime)
 	if err != nil {
 		return err
 	}
