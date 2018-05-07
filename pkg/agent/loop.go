@@ -114,7 +114,7 @@ func (r *ReconciliationLoop) Run() error {
 			select {
 			case <-r.done:
 				return
-			case <-time.After(10 * time.Second):
+			case <-time.After(pkg.ReconciliationLoopInterval):
 				err := r.iteration()
 				if err != nil {
 					log.Warnf("ReconciliationLoop iteration error: %v", err)

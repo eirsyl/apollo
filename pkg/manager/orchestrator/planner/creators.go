@@ -326,6 +326,7 @@ func (p *Planner) NewOpenSlotsFixupTask(clusterNodes []string, openSlots []int, 
 				return errors.New("could not calculate slot closing commands")
 			}
 
+			task.Commands = append(task.Commands, ownerCommands...)
 			task.Commands = append(task.Commands, newCommands...)
 			log.Infof("New Tasks: %v", newCommands)
 		}
@@ -404,6 +405,9 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 
 			// Case 1: No nodes have keys belonging to the slot
 			slotAssignments, e := planner.AllocateSlotsWithoutKeys(keys)
+			if len(slotAssignments) > 0 {
+				log.Infof("No nodes have keys belonging to open slot")
+			}
 			if e != nil {
 				return e
 			}
@@ -419,6 +423,9 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 
 			// Case 2: One node have keys belonging to the slot
 			slotAssignments, e = planner.AllocateSlotsWithOneNode(keys)
+			if len(slotAssignments) > 0 {
+				log.Infof("One node have keys belonging to open slot")
+			}
 			if e != nil {
 				return e
 			}
@@ -434,6 +441,9 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 
 			// Case 3: Multiple nodes have keys belonging to the slot
 			advancedSlotAssignments, e := planner.AllocateSlotsWithMultipleNodes(keys)
+			if len(advancedSlotAssignments) > 0 {
+				log.Infof("Multiple nodes have keys belonging to open slot")
+			}
 			if e != nil {
 				return e
 			}

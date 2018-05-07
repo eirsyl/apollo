@@ -134,7 +134,7 @@ func migrateSlot(source string, target string, targetAddr string, masters []stri
 	migrateSlotOpts.AddKIL("slots", []int{slot})
 	migrateSlotOpts.AddKS("addr", targetAddr)
 	migrateSlotOpts.AddKS("fix", fixMessage)
-	migrateSlotCommand, err := NewCommand(source, CommandMigrateSlots, migrateSlotOpts, commands)
+	migrateSlotCommand, err := NewCommand(source, CommandMigrateSlots, migrateSlotOpts, append(commands, dependencies...))
 	if err != nil {
 		return nil, err
 	}

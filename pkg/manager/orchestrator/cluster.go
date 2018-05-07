@@ -111,7 +111,7 @@ func (c *Cluster) Run() error {
 		default:
 			log.WithField("state", c.state).Warnf("Unhandled cluster state")
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(pkg.ReconciliationLoopInterval)
 	}
 }
 

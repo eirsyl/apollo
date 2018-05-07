@@ -9,8 +9,6 @@ import (
 
 	"errors"
 
-	"time"
-
 	"github.com/eirsyl/apollo/pkg/utils"
 	goRedis "github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
@@ -284,7 +282,16 @@ func (c *Client) MigrateSlots(slots []int, addr string, fix bool) (string, error
 				break
 			}
 			for _, key := range keys {
-				_, err := c.redis.Migrate(host, port, key, 0, 10*time.Second).Result()
+				cmd := goRedis.NewStatusCmd("migrate",
+					host,
+					port,
+					key,
+					0,
+					10*1000,
+					"REPLACE",
+				)
+				c.redis.Process(cmd)
+				_, err := cmd.Result()
 				if err != nil {
 					return "", err
 				}

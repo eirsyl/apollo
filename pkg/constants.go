@@ -15,6 +15,9 @@ const (
 	// PrecheckWaitDelay defines the amount of time to wait before the agent exits
 	// if the precheck failes
 	PrecheckWaitDelay = 10 * time.Second
+
+	// ReconciliationLoopInterval defines the amount of time to wait between each iteration
+	ReconciliationLoopInterval = 10 * time.Second
 )
 
 var (
