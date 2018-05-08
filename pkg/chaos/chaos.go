@@ -13,7 +13,7 @@ type Chaos struct {
 
 // NewChaos initializes a new chaos instance and returns a pointer to it.
 func NewChaos() (*Chaos, error) {
-	balanceCluster, err := test_cases.NewBalanceCluster()
+	addNode, err := test_cases.NewAddNode()
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func NewChaos() (*Chaos, error) {
 
 	return &Chaos{
 		testCases: []test_cases.Test{
-			balanceCluster,
+			addNode,
 			openSlots,
 			slotCoverage,
 			writeData,
