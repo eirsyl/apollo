@@ -31,6 +31,9 @@ func NewAgent(skipPrechecks bool, hostAnnotations map[string]string) (*Agent, er
 		return nil, errors.New("The redis address cannot be empty")
 	}
 
+	rH, rP := utils.GetHostPort(redisAddr)
+	redisAddr = fmt.Sprintf("%s:%d", rH, rP)
+
 	managerAddr := viper.GetString("manager")
 	if managerAddr == "" {
 		return nil, errors.New("The manager address cannot be empty")
@@ -41,14 +44,12 @@ func NewAgent(skipPrechecks bool, hostAnnotations map[string]string) (*Agent, er
 		return nil, fmt.Errorf("Could not create redis client: %v", err)
 	}
 
-	_, redisPort := utils.GetHostPort(redisAddr)
-
 	executorServer, err := NewExecutor(managerAddr, client, skipPrechecks, hostAnnotations)
 	if err != nil {
 		return nil, err
 	}
 
-	httpPort := fmt.Sprintf(":%d", pkg.HTTPPortWindow+redisPort)
+	httpPort := fmt.Sprintf(":%d", pkg.HTTPPortWindow+rP)
 	httpServer, err := NewHTTPServer(httpPort, map[string]string{
 		"module":          "agent",
 		"redisAddr":       redisAddr,
