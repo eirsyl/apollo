@@ -1,6 +1,9 @@
 # Apollo [![CircleCI](https://circleci.com/gh/eirsyl/apollo.svg?style=svg&circle-token=112f280e9b22239b2ee800ca1f4f1705ed29ddf2)](https://circleci.com/gh/eirsyl/apollo)
 > Automatic cluster manager for Redis Cluster
 
+This project is created for educational purposes only, this piece of software
+is not production ready.
+
 ## Research goal
 
 * Expose cluster metrics for cluster monitoring
@@ -31,7 +34,8 @@ Usage:
 
 Available Commands:
   agent       Start the instance agent functionality
-  chaos       Destroy Redis instances to test the cluster manager
+  chaos       Apollo test tool used to test the error detection implemented
+              in the cluster manager
   help        Help about any command
   manager     Start the cluster manager functionality
 
@@ -45,7 +49,12 @@ Use "apollo [command] --help" for more information about a command.
 
 ## Getting started
 
+You need to have the [go toolchain](https://golang.org/doc/install) installed
+to build this project.
+
 ```
 git clone git@github.com:eirsyl/apollo.git $GOPATH/src/github.com/eirsyl/apollo
 make
 ```
+
+The compiled artifact is located in the `bin/` folder.
