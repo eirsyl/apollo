@@ -1,4 +1,4 @@
-package test_cases
+package testcases
 
 import (
 	"errors"
@@ -13,17 +13,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// SlotCoverage represents the slot coverage test case
 type SlotCoverage struct {
 }
 
+// NewSlotCoverage creates a new slot coverage test case
 func NewSlotCoverage() (*SlotCoverage, error) {
 	return &SlotCoverage{}, nil
 }
 
+// GetName returns the name of the clot coverage test case
 func (wd *SlotCoverage) GetName() string {
 	return "slot-coverage"
 }
 
+// Run performs the slot coverage test case
 func (wd *SlotCoverage) Run(args []string) error {
 	if len(args) != 2 {
 		return errors.New("please provide the following flags: [redis-node] [slot-to-delete]")
@@ -41,8 +45,8 @@ func (wd *SlotCoverage) Run(args []string) error {
 
 	// Delete slots on all nodes (One node has data is slot, preloaded with write-data)
 	delSlot := func(c *redis.Client) error {
-		_, err := c.ClusterDelSlots(slotToDelete).Result()
-		return err
+		_, delSlotErr := c.ClusterDelSlots(slotToDelete).Result()
+		return delSlotErr
 	}
 	startTime := time.Now().UTC()
 	err = client.ForEachNode(delSlot)
@@ -61,7 +65,8 @@ func (wd *SlotCoverage) Run(args []string) error {
 	key := "test"
 	keyItr := 1
 	for {
-		slot, err := client.ClusterKeySlot(key).Result()
+		var slot int64
+		slot, err = client.ClusterKeySlot(key).Result()
 		if err != nil {
 			return err
 		}
@@ -69,7 +74,7 @@ func (wd *SlotCoverage) Run(args []string) error {
 			break
 		} else {
 			key = fmt.Sprintf("test_%d", keyItr)
-			keyItr += 1
+			keyItr++
 		}
 	}
 	startTime = time.Now().UTC()
@@ -156,7 +161,7 @@ func watchSlots(c *redis.ClusterClient, slot int) error {
 						hasSlot = true
 						break
 					}
-					s += 1
+					s++
 				}
 			}
 
@@ -168,7 +173,7 @@ func watchSlots(c *redis.ClusterClient, slot int) error {
 		if err != nil {
 			return err
 		}
-		if allKnows == true {
+		if allKnows {
 			break
 		}
 		time.Sleep(1 * time.Second)

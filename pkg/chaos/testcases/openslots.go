@@ -1,4 +1,4 @@
-package test_cases
+package testcases
 
 import (
 	"errors"
@@ -13,21 +13,26 @@ import (
 
 	"sync"
 
+	"github.com/eirsyl/apollo/pkg"
 	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 )
 
+// OpenSlots represents the open slots test case
 type OpenSlots struct {
 }
 
+// NewOpenSlots creates a new open slots test case
 func NewOpenSlots() (*OpenSlots, error) {
 	return &OpenSlots{}, nil
 }
 
+// GetName returns the name of the open slots test case
 func (wd *OpenSlots) GetName() string {
 	return "open-slots"
 }
 
+// Run performs the open slots test case
 func (wd *OpenSlots) Run(args []string) error {
 	if len(args) != 2 {
 		return errors.New("please provide the following flags: [redis-node] [slot-to-manage]")
@@ -65,12 +70,12 @@ func (wd *OpenSlots) Run(args []string) error {
 		}
 
 		flags := args[2]
-		role := "slave"
-		if strings.Contains(flags, "master") && args[3] == "-" {
-			role = "master"
+		role := pkg.SlaveRole
+		if strings.Contains(flags, pkg.MasterRole) && args[3] == "-" {
+			role = pkg.MasterRole
 		}
 
-		if role != "master" {
+		if role != pkg.MasterRole {
 			continue
 		}
 
@@ -99,7 +104,7 @@ func (wd *OpenSlots) Run(args []string) error {
 				}
 				break
 			}
-			slot += 1
+			slot++
 		}
 	}
 	if len(slotNodes) == 0 {
@@ -107,11 +112,11 @@ func (wd *OpenSlots) Run(args []string) error {
 	}
 	log.Info("Finding slot master")
 	var slotMaster string
-	var slotMasterId string
+	var slotMasterID string
 	for _, master := range masters {
 		if slotNodes[master.addr] {
 			slotMaster = master.addr
-			slotMasterId = master.id
+			slotMasterID = master.id
 		}
 	}
 	if slotMaster == "" {
@@ -145,7 +150,7 @@ func (wd *OpenSlots) Run(args []string) error {
 			if destinationSet {
 				return nil
 			}
-			cmd = redis.NewStringCmd("CLUSTER", "SETSLOT", slotToManage, "IMPORTING", slotMasterId)
+			cmd = redis.NewStringCmd("CLUSTER", "SETSLOT", slotToManage, "IMPORTING", slotMasterID)
 			destinationSet = true
 		}
 		err = c.Process(cmd)
@@ -154,10 +159,7 @@ func (wd *OpenSlots) Run(args []string) error {
 		}
 
 		_, err = cmd.Result()
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		return err
@@ -188,12 +190,12 @@ func (wd *OpenSlots) Run(args []string) error {
 		}
 
 		flags := args[2]
-		role := "slave"
-		if strings.Contains(flags, "master") && args[3] == "-" {
-			role = "master"
+		role := pkg.SlaveRole
+		if strings.Contains(flags, pkg.MasterRole) && args[3] == "-" {
+			role = pkg.MasterRole
 		}
 
-		if role != "master" {
+		if role != pkg.MasterRole {
 			continue
 		}
 
@@ -222,7 +224,7 @@ func (wd *OpenSlots) Run(args []string) error {
 				}
 				break
 			}
-			slot += 1
+			slot++
 		}
 	}
 	if len(slotNodes) == 0 {
@@ -232,7 +234,7 @@ func (wd *OpenSlots) Run(args []string) error {
 	for _, master := range masters {
 		if slotNodes[master.addr] {
 			slotMaster = master.addr
-			slotMasterId = master.id
+			slotMasterID = master.id
 		}
 	}
 	if slotMaster == "" {
@@ -258,18 +260,14 @@ func (wd *OpenSlots) Run(args []string) error {
 			return nil
 		}
 
-		cmd := redis.NewStringCmd("CLUSTER", "SETSLOT", slotToManage, "IMPORTING", slotMasterId)
+		cmd := redis.NewStringCmd("CLUSTER", "SETSLOT", slotToManage, "IMPORTING", slotMasterID)
 		err = c.Process(cmd)
 		if err != nil {
 			return err
 		}
 
 		_, err = cmd.Result()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return err
 	})
 	if err != nil {
 		return err
@@ -300,12 +298,12 @@ func (wd *OpenSlots) Run(args []string) error {
 		}
 
 		flags := args[2]
-		role := "slave"
-		if strings.Contains(flags, "master") && args[3] == "-" {
-			role = "master"
+		role := pkg.SlaveRole
+		if strings.Contains(flags, pkg.MasterRole) && args[3] == "-" {
+			role = pkg.MasterRole
 		}
 
-		if role != "master" {
+		if role != pkg.MasterRole {
 			continue
 		}
 
@@ -334,7 +332,7 @@ func (wd *OpenSlots) Run(args []string) error {
 				}
 				break
 			}
-			slot += 1
+			slot++
 		}
 	}
 	if len(slotNodes) == 0 {
@@ -344,7 +342,7 @@ func (wd *OpenSlots) Run(args []string) error {
 	for _, master := range masters {
 		if slotNodes[master.addr] {
 			slotMaster = master.addr
-			slotMasterId = master.id
+			slotMasterID = master.id
 		}
 	}
 	if slotMaster == "" {
@@ -423,7 +421,7 @@ func watchOpenSlots(c *redis.ClusterClient) error {
 		if err != nil {
 			return err
 		}
-		if allClosed == true {
+		if allClosed {
 			break
 		}
 		time.Sleep(1 * time.Second)

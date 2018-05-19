@@ -1,4 +1,4 @@
-package test_cases
+package testcases
 
 import (
 	"os/exec"
@@ -12,17 +12,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// AddNode represents the add node test case
 type AddNode struct {
 }
 
+// NewAddNode creates a new add node test case
 func NewAddNode() (*AddNode, error) {
 	return &AddNode{}, nil
 }
 
+// GetName returns the name of the test case
 func (wd *AddNode) GetName() string {
 	return "add-node"
 }
 
+// Run executes the add node test case
 func (wd *AddNode) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("please provide the following flags: [new-cluster-size]")
@@ -34,8 +38,8 @@ func (wd *AddNode) Run(args []string) error {
 		return err
 	}
 
-	serverCmd := "redis-server --port 6100 --cluster-enabled yes --dbfilename node100.rdb --cluster-config-file node100.conf"
-	agentCmd := "bin/apollo agent --redis=127.0.0.1:6100 --managerTLS=false"
+	const serverCmd = "redis-server --port 6100 --cluster-enabled yes --dbfilename node100.rdb --cluster-config-file node100.conf"
+	const agentCmd = "bin/apollo agent --redis=127.0.0.1:6100 --managerTLS=false"
 
 	// Run services
 	go func() {
@@ -88,6 +92,7 @@ func (wd *AddNode) Run(args []string) error {
 
 func runCmd(command string) error {
 	run := strings.Split(command, " ")
+	/* #nosec */
 	cmd := exec.Command(run[0], run[1:]...)
 	return cmd.Run()
 }

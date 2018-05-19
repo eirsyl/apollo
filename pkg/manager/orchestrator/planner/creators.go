@@ -404,66 +404,68 @@ func (p *Planner) NewSlotCoverageFixupTask(clusterNodes []string, openSlots []in
 			var newCommands []*Command
 
 			// Case 1: No nodes have keys belonging to the slot
-			slotAssignments, e := planner.AllocateSlotsWithoutKeys(keys)
+			slotAssignments, err := planner.AllocateSlotsWithoutKeys(keys)
 			if len(slotAssignments) > 0 {
 				log.Infof("No nodes have keys belonging to open slot")
 			}
-			if e != nil {
-				return e
+			if err != nil {
+				return err
 			}
 			for node, allocation := range slotAssignments {
 				co := *NewCommandOpts()
 				co.AddKIL("slots", allocation.Slots)
-				command, e := NewCommand(node, CommandAddSlots, co, keysCount)
-				if e != nil {
-					return e
+				var command *Command
+				command, err = NewCommand(node, CommandAddSlots, co, keysCount)
+				if err != nil {
+					return err
 				}
 				newCommands = append(newCommands, command)
 			}
 
 			// Case 2: One node have keys belonging to the slot
-			slotAssignments, e = planner.AllocateSlotsWithOneNode(keys)
+			slotAssignments, err = planner.AllocateSlotsWithOneNode(keys)
 			if len(slotAssignments) > 0 {
 				log.Infof("One node have keys belonging to open slot")
 			}
-			if e != nil {
-				return e
+			if err != nil {
+				return err
 			}
 			for node, allocation := range slotAssignments {
 				co := *NewCommandOpts()
 				co.AddKIL("slots", allocation.Slots)
-				command, e := NewCommand(node, CommandAddSlots, co, keysCount)
-				if e != nil {
-					return e
+				var command *Command
+				command, err = NewCommand(node, CommandAddSlots, co, keysCount)
+				if err != nil {
+					return err
 				}
 				newCommands = append(newCommands, command)
 			}
 
 			// Case 3: Multiple nodes have keys belonging to the slot
-			advancedSlotAssignments, e := planner.AllocateSlotsWithMultipleNodes(keys)
+			advancedSlotAssignments, err := planner.AllocateSlotsWithMultipleNodes(keys)
 			if len(advancedSlotAssignments) > 0 {
 				log.Infof("Multiple nodes have keys belonging to open slot")
 			}
-			if e != nil {
-				return e
+			if err != nil {
+				return err
 			}
 			for slot, allocation := range advancedSlotAssignments {
 				target := allocation.Master
 
 				addSlotOpts := *NewCommandOpts()
 				addSlotOpts.AddKIL("slots", []int{slot})
-				addSlotCmd, e := NewCommand(target, CommandAddSlots, addSlotOpts, keysCount)
-				if e != nil {
-					return e
+				addSlotCmd, err := NewCommand(target, CommandAddSlots, addSlotOpts, keysCount)
+				if err != nil {
+					return err
 				}
 				newCommands = append(newCommands, addSlotCmd)
 
 				setSlotOpts := *NewCommandOpts()
 				setSlotOpts.AddKIL("slots", []int{slot})
 				setSlotOpts.AddKS("state", "stable")
-				setSlotCmd, e := NewCommand(target, CommandSetSlotState, setSlotOpts, []*Command{addSlotCmd})
-				if e != nil {
-					return e
+				setSlotCmd, err := NewCommand(target, CommandSetSlotState, setSlotOpts, []*Command{addSlotCmd})
+				if err != nil {
+					return err
 				}
 				newCommands = append(newCommands, setSlotCmd)
 

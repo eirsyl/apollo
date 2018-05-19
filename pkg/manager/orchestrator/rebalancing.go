@@ -6,7 +6,7 @@ func getNodeWeights(nodes map[string]*Node) (map[string]float64, float64) {
 
 	for _, node := range nodes {
 		weights[node.ID] = 1
-		totalWeight += 1
+		totalWeight++
 	}
 
 	return weights, totalWeight

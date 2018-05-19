@@ -71,6 +71,7 @@ type SlotCloserPlanner interface {
 	ImportingNodes(slot int) ([]string, error)
 }
 
+// AddNodePlan contains information returned by an AddNodePlanner, this information is used by the process of adding a node
 type AddNodePlan struct {
 	NodeID            string
 	IsMaster          bool

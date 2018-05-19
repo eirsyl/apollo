@@ -1,27 +1,34 @@
-package test_cases
+package testcases
 
 import (
 	"errors"
 	"fmt"
 
-	"math/rand"
+	"crypto/rand"
 
 	"sync"
+
+	"math"
+	"math/big"
 
 	"github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
 )
 
+// WriteData represents the data writer used before test cases
 type WriteData struct{}
 
+// NewWriteData creates a new data writer
 func NewWriteData() (*WriteData, error) {
 	return &WriteData{}, nil
 }
 
+// GetName returns the name of the write data task
 func (wd *WriteData) GetName() string {
 	return "write-data"
 }
 
+// Run performs the data writing to the cluster
 func (wd *WriteData) Run(args []string) error {
 	if len(args) < 1 {
 		return errors.New("please provide a server url as an argument")
@@ -43,7 +50,7 @@ func (wd *WriteData) Run(args []string) error {
 			defer wg.Done()
 
 			for key := range keys {
-				_, err := client.Set(key, RandStringBytesMask(8), 0).Result()
+				_, err := client.Set(key, randStringBytesMask(8), 0).Result()
 				if err != nil {
 					log.Error(err)
 				}
@@ -55,7 +62,7 @@ func (wd *WriteData) Run(args []string) error {
 	for n > 0 {
 		key := fmt.Sprintf("test-case-%d", n)
 		keys <- key
-		n -= 1
+		n--
 	}
 	log.Info("Done with key buffering")
 
@@ -70,10 +77,14 @@ const (
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 )
 
-func RandStringBytesMask(n int) string {
+func randStringBytesMask(n int) string {
 	b := make([]byte, n)
 	for i := 0; i < n; {
-		if idx := int(rand.Int63() & letterIdxMask); idx < len(letterBytes) {
+		randInt, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+		if err != nil {
+			panic(err)
+		}
+		if idx := int(randInt.Int64() & letterIdxMask); idx < len(letterBytes) {
 			b[i] = letterBytes[idx]
 			i++
 		}

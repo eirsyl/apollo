@@ -18,6 +18,11 @@ const (
 
 	// ReconciliationLoopInterval defines the amount of time to wait between each iteration
 	ReconciliationLoopInterval = 10 * time.Second
+
+	// MasterRole contains the string representing the master role returned from 'CLUSTER NODES'
+	MasterRole = "master"
+	// SlaveRole contains the string representing the slave role
+	SlaveRole = "slave"
 )
 
 var (

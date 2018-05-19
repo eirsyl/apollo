@@ -9,6 +9,7 @@ import (
 
 	"errors"
 
+	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/utils"
 	goRedis "github.com/go-redis/redis"
 	log "github.com/sirupsen/logrus"
@@ -132,9 +133,9 @@ func (c *Client) ClusterNodes() ([]ClusterNode, error) {
 		}
 
 		flags := args[2]
-		role := "slave"
-		if strings.Contains(flags, "master") && args[3] == "-" {
-			role = "master"
+		role := pkg.SlaveRole
+		if strings.Contains(flags, pkg.MasterRole) && args[3] == "-" {
+			role = pkg.MasterRole
 		}
 
 		pingRecv, err := strconv.Atoi(args[4])
@@ -259,6 +260,7 @@ func (c *Client) DelSlots(slots []int) (string, error) {
 
 // MigrateSlots moves slots from one node to another
 func (c *Client) MigrateSlots(slots []int, addr string, fix bool) (string, error) {
+	// TODO: Implement transactions
 	host, p := utils.GetHostPort(addr)
 	port := strconv.Itoa(p)
 
@@ -290,8 +292,11 @@ func (c *Client) MigrateSlots(slots []int, addr string, fix bool) (string, error
 					10*1000,
 					"REPLACE",
 				)
-				c.redis.Process(cmd)
-				_, err := cmd.Result()
+				err := c.redis.Process(cmd)
+				if err != nil {
+					return "", err
+				}
+				_, err = cmd.Result()
 				if err != nil {
 					return "", err
 				}

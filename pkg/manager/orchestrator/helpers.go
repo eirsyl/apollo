@@ -3,8 +3,10 @@ package orchestrator
 import (
 	"math"
 
+	"crypto/rand"
 	"errors"
-	"math/rand"
+
+	"math/big"
 
 	"github.com/eirsyl/apollo/pkg"
 	"github.com/eirsyl/apollo/pkg/manager/orchestrator/planner"
@@ -66,14 +68,20 @@ func allocSlots(nodes *[]Node, replication int) (map[string]*planner.CreateClust
 func allocEmptySlot(nodes *[]Node) (*Node, error) {
 	var masters []Node
 	for _, node := range *nodes {
-		if node.MySelf.Role == "master" {
+		if node.MySelf.Role == pkg.MasterRole {
 			masters = append(masters, node)
 		}
 	}
 	if len(masters) == 0 {
 		return nil, errors.New("no masters found")
 	}
-	n := rand.Int() % len(masters)
+
+	randInt, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+	if err != nil {
+		return nil, err
+	}
+
+	n := int(randInt.Int64()) % len(masters)
 	return &masters[n], nil
 }
 
@@ -221,7 +229,7 @@ func (scp *slotCoveragePlanner) IsMasterNode(nodeID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return node.MySelf.Role == "master", nil
+	return node.MySelf.Role == pkg.MasterRole, nil
 }
 
 func (scp *slotCoveragePlanner) GetAddr(nodeID string) (string, error) {
@@ -274,7 +282,7 @@ func (scp *slotClosePlanner) SlotOwners(slot int) ([]string, error) {
 	}
 
 	for _, node := range clusterNodes {
-		if node.MySelf.Role == "master" {
+		if node.MySelf.Role == pkg.MasterRole {
 			slots, err := node.MySelf.allSlots()
 			if err != nil {
 				return nil, err
@@ -299,7 +307,7 @@ func (scp *slotClosePlanner) MigratingNodes(slot int) ([]string, error) {
 	}
 
 	for _, node := range clusterNodes {
-		if node.MySelf.Role == "master" {
+		if node.MySelf.Role == pkg.MasterRole {
 			openSlots, err := node.MySelf.openSlots()
 			if err != nil {
 				return nil, err
@@ -325,7 +333,7 @@ func (scp *slotClosePlanner) ImportingNodes(slot int) ([]string, error) {
 	}
 
 	for _, node := range clusterNodes {
-		if node.MySelf.Role == "master" {
+		if node.MySelf.Role == pkg.MasterRole {
 			openSlots, err := node.MySelf.openSlots()
 			if err != nil {
 				return nil, err
@@ -347,7 +355,7 @@ func (scp *slotClosePlanner) IsMasterNode(nodeID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return node.MySelf.Role == "master", nil
+	return node.MySelf.Role == pkg.MasterRole, nil
 }
 
 func (scp *slotClosePlanner) GetAddr(nodeID string) (string, error) {
@@ -390,7 +398,7 @@ func (anp *addNodePlanner) GetNodePlans(nodes []string, replication int) ([]plan
 			continue
 		}
 
-		if memberNode.MySelf.Role == "master" {
+		if memberNode.MySelf.Role == pkg.MasterRole {
 			_, ok := masters[memberNode.ID]
 			if !ok {
 				masters[memberNode.ID] = 0
@@ -400,7 +408,7 @@ func (anp *addNodePlanner) GetNodePlans(nodes []string, replication int) ([]plan
 			if !ok {
 				masters[memberNode.MySelf.MasterID] = 1
 			} else {
-				masters[memberNode.MySelf.MasterID] += 1
+				masters[memberNode.MySelf.MasterID]++
 			}
 		}
 	}
@@ -427,14 +435,18 @@ func (anp *addNodePlanner) GetNodePlans(nodes []string, replication int) ([]plan
 		} else {
 			// Pick random node to replicate
 			log.Infof("Add node: %s replica", node)
-			replicationTargetIndex := rand.Int() % len(mastersWithoutReplicas)
+			randInt, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
+			if err != nil {
+				return nil, err
+			}
+			replicationTargetIndex := int(randInt.Int64()) % len(mastersWithoutReplicas)
 			replicationTarget := mastersWithoutReplicas[replicationTargetIndex]
 			plans = append(plans, planner.AddNodePlan{
 				NodeID:            node,
 				IsMaster:          false,
 				ReplicationTarget: replicationTarget,
 			})
-			masters[replicationTarget] += 1
+			masters[replicationTarget]++
 		}
 	}
 

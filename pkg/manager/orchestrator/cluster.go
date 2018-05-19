@@ -739,7 +739,7 @@ func (c *Cluster) createNodeManagementTasks() (bool, error) {
 func (c *Cluster) balanceCluster() error {
 	// Balance cluster checks the distribution of slots between the master modes.
 	threshold := 5.0
-	useEmptyMasters := true
+	// useEmptyMasters := true
 
 	nodes, err := c.nodeManager.allNodes()
 	if err != nil {
@@ -757,13 +757,16 @@ func (c *Cluster) balanceCluster() error {
 			continue
 		}
 
-		if node.MySelf.Role != "master" {
+		if node.MySelf.Role != pkg.MasterRole {
 			continue
 		}
 
-		if !useEmptyMasters && node.IsEmpty {
-			continue
-		}
+		/*
+			Use empty masters is always true
+			if !useEmptyMasters && node.IsEmpty {
+				continue
+			}
+		*/
 		masters[clusterNode] = &node
 	}
 
@@ -811,8 +814,8 @@ func (c *Cluster) balanceCluster() error {
 	for totalBalance > 0 {
 		for node, balance := range balances {
 			if balance < 0 && totalBalance > 0 {
-				balances[node] -= 1
-				totalBalance -= 1
+				balances[node]--
+				totalBalance--
 			}
 		}
 	}
@@ -830,11 +833,11 @@ func (c *Cluster) balanceCluster() error {
 		return sbalances[i].balance < sbalances[j].balance
 	})
 
-	dst_idx := 0
-	src_idx := len(sbalances) - 1
-	for dst_idx < src_idx {
-		dst := sbalances[dst_idx]
-		src := sbalances[src_idx]
+	dstIdx := 0
+	srcIdx := len(sbalances) - 1
+	for dstIdx < srcIdx {
+		dst := sbalances[dstIdx]
+		src := sbalances[srcIdx]
 		var numSlots int
 		if math.Abs(float64(dst.balance)) < math.Abs(float64(src.balance)) {
 			numSlots = int(math.Abs(float64(dst.balance)))
@@ -862,13 +865,13 @@ func (c *Cluster) balanceCluster() error {
 		}
 
 		// Update balances
-		sbalances[dst_idx].balance += numSlots
-		sbalances[src_idx].balance -= numSlots
-		if sbalances[dst_idx].balance == 0 {
-			dst_idx += 1
+		sbalances[dstIdx].balance += numSlots
+		sbalances[srcIdx].balance -= numSlots
+		if sbalances[dstIdx].balance == 0 {
+			dstIdx++
 		}
-		if sbalances[src_idx].balance == 0 {
-			src_idx -= 1
+		if sbalances[srcIdx].balance == 0 {
+			srcIdx--
 		}
 	}
 
