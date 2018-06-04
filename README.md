@@ -58,3 +58,22 @@ make
 ```
 
 The compiled artifact is located in the `bin/` folder.
+
+## Features
+
+Apollo supports the following management tasks:
+
+* Cluster creation
+* Open slot
+* Slot coverage
+* Node addition
+* Balance cluster
+* Monitoring (prometheus exporter)
+
+## Monitoring
+
+The Apollo agents exposes a set of Redis metrics via the http server. The metrics are located on the `/metrics`
+endpoint in the Prometheus metrics format. The `dashboards` folder contains a Grafana dashboard for monitoring
+of the Redis nodes.
+
+![Grafana Dashboard](docs/grafana.png)
