@@ -21,34 +21,39 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type clusterState int
+// ClusterState represents the state of the cluster
+//go:generate stringer -type=ClusterState
+type ClusterState int
 
 // Int64 returns the value as a int64
-func (cs *clusterState) Int64() int64 {
+func (cs *ClusterState) Int64() int64 {
 	return int64(*cs)
 }
 
-type clusterHealth int
+// ClusterHealth represents the health of the cluster
+//go:generate stringer -type=ClusterHealth
+type ClusterHealth int
 
 // Int64 returns the value as a int64
-func (cs *clusterHealth) Int64() int64 {
+func (cs *ClusterHealth) Int64() int64 {
 	return int64(*cs)
 }
 
 const (
-	clusterUnknown      clusterState = 0
-	clusterUnconfigured clusterState = 1
-	clusterConfigured   clusterState = 2
-
-	clusterOK    clusterHealth = 0
-	clusterWarn  clusterHealth = 1
-	clusterError clusterHealth = 2
+	clusterUnknown ClusterState = iota
+	clusterUnconfigured
+	clusterConfigured
+)
+const (
+	clusterOK ClusterHealth = iota
+	clusterWarn
+	clusterError
 )
 
 // Cluster stores the manager observations of the cluster
 type Cluster struct {
-	state              clusterState
-	health             clusterHealth
+	state              ClusterState
+	health             ClusterHealth
 	desiredReplication int
 	minNodesCreate     int
 	db                 *bolt.DB
@@ -198,7 +203,7 @@ func (c *Cluster) configureCluster() {
 
 // iteration watches the cluster after everything is configured and up an running
 func (c *Cluster) iteration() {
-	l := log.WithFields(log.Fields{"clusterHealth": HumanizeClusterHealth(c.health.Int64()), "clusterState": HumanizeClusterState(c.state.Int64())})
+	l := log.WithFields(log.Fields{"ClusterHealth": c.health, "ClusterState": c.state})
 	l.Info("Running iteration")
 
 	task, err := c.planner.CurrentTask()
@@ -229,7 +234,7 @@ func (c *Cluster) iteration() {
 		l.Info("No running task, initializing a cluster check")
 		c.checkCluster()
 	} else {
-		l.Infof("Watching task execution: %s", planner.HumanizeTaskType(task.Type.Int64()))
+		l.Infof("Watching task execution: %s", task.Type)
 		c.watchTask(task)
 	}
 
@@ -438,7 +443,7 @@ func (c *Cluster) checkCluster() {
 
 // watchTask watches task execution and tries to fix execution errors
 func (c *Cluster) watchTask(task *planner.Task) {
-	log.Infof("Watches task: %s (NOT IMPLEMENTED)", planner.HumanizeTaskType(task.Type.Int64()))
+	log.Infof("Watches task: %s (NOT IMPLEMENTED)", task.Type)
 }
 
 // findClusterAndOnlineNodes looks up online nodes and cluster members from db

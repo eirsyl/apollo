@@ -12,3 +12,4 @@ cluster/*.conf
 cluster/*.rdb
 node100.conf
 *.rdb
+*_string.go

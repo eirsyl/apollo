@@ -6,45 +6,51 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-type commandStatus int
+// CommandStatus represents the status of the command type
+//go:generate stringer -type=CommandStatus
+type CommandStatus int
 
 // Int64 returns the value as a int64
-func (cs *commandStatus) Int64() int64 {
+func (cs *CommandStatus) Int64() int64 {
 	return int64(*cs)
 }
 
-type commandType int
+// CommandType represents the type of the command type
+//go:generate stringer -type=CommandType
+type CommandType int
 
 // Int64 returns the value as a int64
-func (t *commandType) Int64() int64 {
+func (t *CommandType) Int64() int64 {
 	return int64(*t)
 }
 
-var (
+const (
 	// CommandWaiting is used before a node has tried to execute the command
-	CommandWaiting commandStatus
+	CommandWaiting CommandStatus = iota
 	// CommandRunning represents a command that is currently being executed by a
-	CommandRunning commandStatus = 1
+	CommandRunning
 	// CommandFinished represents a command that has terminated successfully
-	CommandFinished commandStatus = 2
+	CommandFinished
+)
+const (
 	// CommandAddSlots represents the command that is responsible for adding slots to a master node.
-	CommandAddSlots commandType = 1
+	CommandAddSlots CommandType = iota + 1
 	// CommandSetReplicate represents the command used to set replication on a slave
-	CommandSetReplicate commandType = 2
+	CommandSetReplicate
 	// CommandSetEpoch is used to set the cluster epoch
-	CommandSetEpoch commandType = 3
+	CommandSetEpoch
 	// CommandJoinCluster is used to call the CLUSTER MEET command.
-	CommandJoinCluster commandType = 4
+	CommandJoinCluster
 	// CommandCountKeysInSlots is used to count keys given a list of keys
-	CommandCountKeysInSlots commandType = 5
+	CommandCountKeysInSlots
 	// CommandSetSlotState changes the state of a set of slots
-	CommandSetSlotState commandType = 6
+	CommandSetSlotState
 	// CommandBumpEpoch bumps the current cluster epoch
-	CommandBumpEpoch commandType = 7
+	CommandBumpEpoch
 	// CommandDelSlots deletes a slot from a node
-	CommandDelSlots commandType = 8
+	CommandDelSlots
 	// CommandMigrateSlots is responsible for migrating keys from one node to another
-	CommandMigrateSlots commandType = 9
+	CommandMigrateSlots
 )
 
 // CommandOpts is used to attach extra data to commands.
@@ -85,8 +91,8 @@ func (co *CommandOpts) GetKIL(key string) []int {
 type Command struct {
 	ID            uuid.UUID
 	NodeID        string
-	Type          commandType
-	Status        commandStatus
+	Type          CommandType
+	Status        CommandStatus
 	Opts          CommandOpts
 	Creation      time.Time
 	Execution     time.Time
@@ -97,7 +103,7 @@ type Command struct {
 }
 
 // NewCommand creates a new command
-func NewCommand(nodeID string, ct commandType, opts CommandOpts, dependencies []*Command) (*Command, error) {
+func NewCommand(nodeID string, ct CommandType, opts CommandOpts, dependencies []*Command) (*Command, error) {
 	if dependencies == nil {
 		dependencies = []*Command{}
 	}
@@ -114,7 +120,7 @@ func NewCommand(nodeID string, ct commandType, opts CommandOpts, dependencies []
 }
 
 // UpdateStatus changes the command status
-func (c *Command) UpdateStatus(status commandStatus) {
+func (c *Command) UpdateStatus(status CommandStatus) {
 	if c.Status == CommandRunning && status == CommandRunning {
 		c.IncrementRetry()
 	}

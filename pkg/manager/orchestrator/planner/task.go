@@ -8,48 +8,53 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type taskType int
+// TaskType represents the type of a task
+//go:generate stringer -type=TaskType
+type TaskType int
 
 // Int64 returns the value as a int64
-func (cs *taskType) Int64() int64 {
+func (cs *TaskType) Int64() int64 {
 	return int64(*cs)
 }
 
-type taskStatus int
+// TaskStatus represents the status of a task
+//go:generate stringer -type=TaskStatus
+type TaskStatus int
 
 // Int64 returns the value as a int64
-func (cs *taskStatus) Int64() int64 {
+func (cs *TaskStatus) Int64() int64 {
 	return int64(*cs)
 }
 
-var (
+const (
 	// TaskCreateCluster task is responsible for creating a cluster
-	TaskCreateCluster taskType = 1
+	TaskCreateCluster TaskType = iota + 1
 	// TaskMemberFixup is responsible for making sure each cluster member knows about each other
-	TaskMemberFixup taskType = 2
+	TaskMemberFixup
 	// TaskFixOpenSlots is responsible for fixing open slots
-	TaskFixOpenSlots taskType = 3
+	TaskFixOpenSlots
 	// TaskFixSlotAllocation is responsible for fixing slot allocation issues
-	TaskFixSlotAllocation taskType = 4
+	TaskFixSlotAllocation
 	// TaskAddNodeCluster is used to add new nodes to the cluster
-	TaskAddNodeCluster taskType = 5
+	TaskAddNodeCluster
 	// TaskRemoveNodeCluster is used to remove a node from the cluster
-	TaskRemoveNodeCluster taskType = 6
+	TaskRemoveNodeCluster
 	// TaskReshardCluster is used to reshard the cluster
-	TaskReshardCluster taskType = 7
-
+	TaskReshardCluster
+)
+const (
 	// StatusWaiting is used for a task that is in the execution queue
-	StatusWaiting taskStatus
+	StatusWaiting TaskStatus = iota
 	// StatusExecuting is used by tasks that is currently being executed by the nodes.
-	StatusExecuting taskStatus = 1
+	StatusExecuting
 	// StatusExecuted is used on tasks that is done
-	StatusExecuted taskStatus = 2
+	StatusExecuted
 )
 
 // Task represents a task that the cluster manager should execute
 type Task struct {
-	Type           taskType
-	Status         taskStatus
+	Type           TaskType
+	Status         TaskStatus
 	Commands       []*Command
 	ProcessResults func(task *Task) error
 	lock           sync.Mutex
@@ -57,7 +62,7 @@ type Task struct {
 }
 
 // NewTask creates a new task
-func NewTask(t taskType, commands []*Command, startTime time.Time) (*Task, error) {
+func NewTask(t TaskType, commands []*Command, startTime time.Time) (*Task, error) {
 	task := &Task{
 		Type:      t,
 		Status:    StatusWaiting,
@@ -155,7 +160,7 @@ L:
 			log.WithFields(
 				log.Fields{
 					"duration":  time.Since(t.startTime),
-					"operation": HumanizeTaskType(t.Type.Int64()),
+					"operation": t.Type,
 				},
 			).Info("Task completed successfully")
 		}

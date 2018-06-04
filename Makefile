@@ -22,7 +22,10 @@ M = $(shell printf "\033[34;1m▶\033[0m")
 all: test build | $(BASE) ;
 	$Q
 
-build: vendor | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
+generate: vendor | $(BASE) $(STRINGER) ; $(info $(M) generating code…) @ ## Generate code
+	$Q cd $(BASE) && $(GO) generate ./...
+
+build: vendor generate | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
 	$Q cd $(BASE) && $(GO) build \
 		-tags release \
 		-ldflags '-X $(IMPORT)/pkg.Version=$(VERSION) -X $(IMPORT)/pkg.BuildDate=$(DATE)' \
@@ -66,6 +69,10 @@ PROTOGENGO = $(BIN)/protoc-gen-go
 $(BIN)/protoc-gen-go: | $(BASE) ; $(info $(M) building proto-gen-go…)
 	$Q go get github.com/golang/protobuf/protoc-gen-go
 
+STRINGER = $(BIN)/stringer
+$(BIN)/stringer: | $(BASE) ; $(info $(M) building stringer…)
+	$Q go get golang.org/x/tools/cmd/stringer
+
 # Tests
 
 TEST_TARGETS := test-default test-bench test-short test-verbose test-race
@@ -76,10 +83,10 @@ test-verbose: ARGS=-v            ## Run tests in verbose mode with coverage repo
 test-race:    ARGS=-race         ## Run tests with race detector
 $(TEST_TARGETS): NAME=$(MAKECMDGOALS:test-%=%)
 $(TEST_TARGETS): test
-test: fmt lint vendor | $(BASE) ; $(info $(M) running $(NAME:%=% )tests…) @ ## Run tests
+test: generate fmt lint vendor | $(BASE) ; $(info $(M) running $(NAME:%=% )tests…) @ ## Run tests
 	$Q cd $(BASE) && $(GO) test -timeout $(TIMEOUT)s $(ARGS) $(TESTPKGS)
 
-test-xml: fmt lint vendor | $(BASE) $(GO2XUNIT) ; $(info $(M) running $(NAME:%=% )tests…) @ ## Run tests with xUnit output
+test-xml: generate fmt lint vendor | $(BASE) $(GO2XUNIT) ; $(info $(M) running $(NAME:%=% )tests…) @ ## Run tests with xUnit output
 	$Q cd $(BASE) && 2>&1 $(GO) test -timeout 20s -v $(TESTPKGS) | tee test/tests.output
 	$(GO2XUNIT) -fail -input test/tests.output -output test/tests.xml
 
@@ -90,7 +97,7 @@ COVERAGE_HTML = $(COVERAGE_DIR)/index.html
 .PHONY: test-coverage test-coverage-tools
 test-coverage-tools: | $(GOCOVMERGE) $(GOCOV) $(GOCOVXML)
 test-coverage: COVERAGE_DIR := $(CURDIR)/test/coverage.$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-test-coverage: fmt lint vendor test-coverage-tools | $(BASE) ; $(info $(M) running coverage tests…) @ ## Run coverage tests
+test-coverage: generate fmt lint vendor test-coverage-tools | $(BASE) ; $(info $(M) running coverage tests…) @ ## Run coverage tests
 	$Q mkdir -p $(COVERAGE_DIR)/coverage
 	$Q cd $(BASE) && for pkg in $(TESTPKGS); do \
 		$(GO) test \
@@ -105,7 +112,7 @@ test-coverage: fmt lint vendor test-coverage-tools | $(BASE) ; $(info $(M) runni
 	$Q $(GOCOV) convert $(COVERAGE_PROFILE) | $(GOCOVXML) > $(COVERAGE_XML)
 
 .PHONY: lint
-lint: vendor | $(BASE) $(GOMETALINTER) ; $(info $(M) running gometalinter…) @ ## Run gometalinter
+lint: generate vendor | $(BASE) $(GOMETALINTER) ; $(info $(M) running gometalinter…) @ ## Run gometalinter
 	$Q cd $(BASE) && $(GOMETALINTER) --deadline=2m --vendor --skip=api ./...
 
 .PHONY: fmt
@@ -130,7 +137,7 @@ gen-proto: pkg/proto | $(BASE) $(PROTOC) $(PROTOGENGO) ; $(info $(M) generating 
 PREFIX=$(AUTHOR)/$(PACKAGE)
 
 .PHONY: container
-container: vendor | $(BASE) ; $(info $(M) building container…) @ ## Build container
+container: generate vendor | $(BASE) ; $(info $(M) building container…) @ ## Build container
 	$Q cd $(BASE) && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build \
 		-tags release \
 		-ldflags '-X $(IMPORT)/pkg.Version=$(VERSION) -X $(IMPORT)/pkg.BuildDate=$(DATE)' \

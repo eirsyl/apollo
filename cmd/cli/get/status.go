@@ -47,7 +47,13 @@ var getStatusCmd = &cobra.Command{
 			if _, err = fmt.Fprintf(status, "Manager\tHealth\tState\n"); err != nil {
 				return err
 			}
-			if _, err = fmt.Fprintf(status, "%s\t%s\t%s\n", manager, orchestrator.HumanizeClusterHealth(response.Health), orchestrator.HumanizeClusterState(response.State)); err != nil {
+			var health orchestrator.ClusterHealth
+			var state orchestrator.ClusterState
+			{
+				health = orchestrator.ClusterHealth(response.Health)
+				state = orchestrator.ClusterState(response.State)
+			}
+			if _, err = fmt.Fprintf(status, "%s\t%s\t%s\n", manager, health, state); err != nil {
 				return err
 			}
 			if _, err = tm.Println(status); err != nil {
@@ -65,11 +71,24 @@ var getStatusCmd = &cobra.Command{
 			}
 
 			for _, task := range response.Tasks {
-				if _, err = fmt.Fprintf(tasks, "%d\t%s\t%s\n", task.Id, planner.HumanizeTaskType(task.Type), planner.HumanizeTaskStatus(task.Status)); err != nil {
+				var taskType planner.TaskType
+				var taskStatus planner.TaskStatus
+				{
+					taskType = planner.TaskType(task.Type)
+					taskStatus = planner.TaskStatus(task.Status)
+				}
+				if _, err = fmt.Fprintf(tasks, "%d\t%s\t%s\n", task.Id, taskType, taskStatus); err != nil {
 					return err
 				}
+
+				var commandType planner.CommandType
+				var commandStatus planner.CommandStatus
 				for _, command := range task.Commands {
-					if _, err = fmt.Fprintf(commands, "%d\t%s\t%s\t%s\t%s\t%d\t%d\n", task.Id, command.Id, planner.HumanizeCommandType(command.Type), planner.HumanizeCommandStatus(command.Status), command.NodeID, command.Retries, command.Dependencies); err != nil {
+					{
+						commandType = planner.CommandType(command.Type)
+						commandStatus = planner.CommandStatus(command.Status)
+					}
+					if _, err = fmt.Fprintf(commands, "%d\t%s\t%s\t%s\t%s\t%d\t%d\n", task.Id, command.Id, commandType, commandStatus, command.NodeID, command.Retries, command.Dependencies); err != nil {
 						return err
 					}
 				}

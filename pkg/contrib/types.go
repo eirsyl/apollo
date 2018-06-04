@@ -3,27 +3,28 @@ package contrib
 import "errors"
 
 // Command describes commands that the manager can issue to agents
+//go:generate stringer -type=Command
 type Command int
 
 const (
 	// CommandAddSlots is used to assign slots to a node
-	CommandAddSlots Command = 1
+	CommandAddSlots Command = iota + 1
 	// CommandSetReplicate represents the command used to set replication on a slave
-	CommandSetReplicate Command = 2
+	CommandSetReplicate
 	// CommandSetEpoch is used to set the cluster epoch
-	CommandSetEpoch Command = 3
+	CommandSetEpoch
 	// CommandJoinCluster is used to call the CLUSTER MEET command.
-	CommandJoinCluster Command = 4
+	CommandJoinCluster
 	// CommandCountKeysInSlots is used to count keys given a list of slots.
-	CommandCountKeysInSlots Command = 5
+	CommandCountKeysInSlots
 	// CommandSetSlotState updates slot state
-	CommandSetSlotState Command = 6
+	CommandSetSlotState
 	// CommandBumpEpoch increments cluster epoch
-	CommandBumpEpoch Command = 7
+	CommandBumpEpoch
 	// CommandDelSlots deletes a slot from the node
-	CommandDelSlots Command = 8
+	CommandDelSlots
 	// CommandMigrateSlots migrates a slot from one node to another
-	CommandMigrateSlots Command = 9
+	CommandMigrateSlots
 )
 
 // NodeCommand stores a command that the manager issues to an agent
