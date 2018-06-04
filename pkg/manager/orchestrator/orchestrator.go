@@ -140,9 +140,9 @@ func (s *Server) Nodes(context.Context, *pb.EmptyMessage) (*pb.NodesResponse, er
 		return a
 	}
 
-	var resultNodes []*pb.Node
+	var resultNodes []*pb.NodesResponse_Node
 	for _, node := range nodes {
-		resultNodes = append(resultNodes, &pb.Node{
+		resultNodes = append(resultNodes, &pb.NodesResponse_Node{
 			Id:              node.ID,
 			Addr:            node.Addr,
 			IsEmpty:         node.IsEmpty,

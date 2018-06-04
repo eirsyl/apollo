@@ -89,14 +89,14 @@ func (p *Planner) ReportResult(nodeID string, results []*CommandResult) error {
 }
 
 // StatusExport produces planner metrics to the protobuf interface (cli usage)
-func (p *Planner) StatusExport() ([]*pb.Task, error) {
-	var tasks []*pb.Task
+func (p *Planner) StatusExport() ([]*pb.StatusResponse_Task, error) {
+	var tasks []*pb.StatusResponse_Task
 
 	p.lock.Lock()
 	for id, task := range p.tasks {
-		var commands []*pb.Command
+		var commands []*pb.StatusResponse_Task_Command
 		for _, command := range task.Commands {
-			commands = append(commands, &pb.Command{
+			commands = append(commands, &pb.StatusResponse_Task_Command{
 				Id:           command.ID.String(),
 				Status:       command.Status.Int64(),
 				Type:         command.Type.Int64(),
@@ -105,7 +105,7 @@ func (p *Planner) StatusExport() ([]*pb.Task, error) {
 				Dependencies: int64(len(command.Dependencies)),
 			})
 		}
-		tasks = append(tasks, &pb.Task{
+		tasks = append(tasks, &pb.StatusResponse_Task{
 			Id:       int64(id),
 			Status:   task.Status.Int64(),
 			Type:     task.Type.Int64(),

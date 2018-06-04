@@ -254,7 +254,7 @@ func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*pb.NextExecution
 		return nil, err
 	}
 
-	var commands []*pb.ExecutionCommand
+	var commands []*pb.NextExecutionResponse_ExecutionCommand
 	for _, command := range nextCommands {
 		command.UpdateStatus(planner.CommandRunning)
 		var arguments []string
@@ -301,7 +301,7 @@ func (c *Cluster) NextExecution(req *pb.NextExecutionRequest) (*pb.NextExecution
 		}
 
 		log.Infof("Sending command to agent: %v %v %v", req.NodeID, command.ID.String(), command.Type)
-		commands = append(commands, &pb.ExecutionCommand{
+		commands = append(commands, &pb.NextExecutionResponse_ExecutionCommand{
 			Id:        command.ID.String(),
 			Command:   command.Type.Int64(),
 			Arguments: arguments,

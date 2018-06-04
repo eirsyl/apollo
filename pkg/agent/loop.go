@@ -298,11 +298,11 @@ func (r *ReconciliationLoop) performActions(commands []*contrib.NodeCommand) ([]
 }
 
 func (r *ReconciliationLoop) reportResults(results []*contrib.NodeCommandResult) error {
-	var cm []*pb.ExecutionResult
+	var cm []*pb.ReportExecutionRequest_ExecutionResult
 
 	for _, result := range results {
 		log.Infof("Sending command result for task: %v", result.ID)
-		cm = append(cm, &pb.ExecutionResult{
+		cm = append(cm, &pb.ReportExecutionRequest_ExecutionResult{
 			Id:      result.ID,
 			Result:  result.Result,
 			Success: result.Success,

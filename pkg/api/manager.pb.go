@@ -18,11 +18,11 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 type StateRequest struct {
-	IsEmpty         bool              `protobuf:"varint,1,opt,name=isEmpty" json:"isEmpty,omitempty"`
-	Nodes           []*ClusterNode    `protobuf:"bytes,2,rep,name=nodes" json:"nodes,omitempty"`
-	HostAnnotations []*HostAnnotation `protobuf:"bytes,3,rep,name=hostAnnotations" json:"hostAnnotations,omitempty"`
-	Metrics         []*NodeMetric     `protobuf:"bytes,4,rep,name=metrics" json:"metrics,omitempty"`
-	Addr            string            `protobuf:"bytes,5,opt,name=addr" json:"addr,omitempty"`
+	IsEmpty         bool                           `protobuf:"varint,1,opt,name=isEmpty" json:"isEmpty,omitempty"`
+	Nodes           []*StateRequest_ClusterNode    `protobuf:"bytes,2,rep,name=nodes" json:"nodes,omitempty"`
+	HostAnnotations []*StateRequest_HostAnnotation `protobuf:"bytes,3,rep,name=hostAnnotations" json:"hostAnnotations,omitempty"`
+	Metrics         []*StateRequest_NodeMetric     `protobuf:"bytes,4,rep,name=metrics" json:"metrics,omitempty"`
+	Addr            string                         `protobuf:"bytes,5,opt,name=addr" json:"addr,omitempty"`
 }
 
 func (m *StateRequest) Reset()                    { *m = StateRequest{} }
@@ -37,21 +37,21 @@ func (m *StateRequest) GetIsEmpty() bool {
 	return false
 }
 
-func (m *StateRequest) GetNodes() []*ClusterNode {
+func (m *StateRequest) GetNodes() []*StateRequest_ClusterNode {
 	if m != nil {
 		return m.Nodes
 	}
 	return nil
 }
 
-func (m *StateRequest) GetHostAnnotations() []*HostAnnotation {
+func (m *StateRequest) GetHostAnnotations() []*StateRequest_HostAnnotation {
 	if m != nil {
 		return m.HostAnnotations
 	}
 	return nil
 }
 
-func (m *StateRequest) GetMetrics() []*NodeMetric {
+func (m *StateRequest) GetMetrics() []*StateRequest_NodeMetric {
 	if m != nil {
 		return m.Metrics
 	}
@@ -63,6 +63,150 @@ func (m *StateRequest) GetAddr() string {
 		return m.Addr
 	}
 	return ""
+}
+
+type StateRequest_ClusterNode struct {
+	NodeID      string   `protobuf:"bytes,1,opt,name=nodeID" json:"nodeID,omitempty"`
+	Addr        string   `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
+	Flags       string   `protobuf:"bytes,3,opt,name=flags" json:"flags,omitempty"`
+	Role        string   `protobuf:"bytes,4,opt,name=role" json:"role,omitempty"`
+	Myself      bool     `protobuf:"varint,5,opt,name=myself" json:"myself,omitempty"`
+	MasterID    string   `protobuf:"bytes,6,opt,name=masterID" json:"masterID,omitempty"`
+	PingSent    int64    `protobuf:"varint,7,opt,name=pingSent" json:"pingSent,omitempty"`
+	PingRecv    int64    `protobuf:"varint,8,opt,name=pingRecv" json:"pingRecv,omitempty"`
+	ConfigEpoch int64    `protobuf:"varint,9,opt,name=configEpoch" json:"configEpoch,omitempty"`
+	LinkStatus  string   `protobuf:"bytes,10,opt,name=linkStatus" json:"linkStatus,omitempty"`
+	Slots       []string `protobuf:"bytes,11,rep,name=slots" json:"slots,omitempty"`
+}
+
+func (m *StateRequest_ClusterNode) Reset()                    { *m = StateRequest_ClusterNode{} }
+func (m *StateRequest_ClusterNode) String() string            { return proto.CompactTextString(m) }
+func (*StateRequest_ClusterNode) ProtoMessage()               {}
+func (*StateRequest_ClusterNode) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0, 0} }
+
+func (m *StateRequest_ClusterNode) GetNodeID() string {
+	if m != nil {
+		return m.NodeID
+	}
+	return ""
+}
+
+func (m *StateRequest_ClusterNode) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
+}
+
+func (m *StateRequest_ClusterNode) GetFlags() string {
+	if m != nil {
+		return m.Flags
+	}
+	return ""
+}
+
+func (m *StateRequest_ClusterNode) GetRole() string {
+	if m != nil {
+		return m.Role
+	}
+	return ""
+}
+
+func (m *StateRequest_ClusterNode) GetMyself() bool {
+	if m != nil {
+		return m.Myself
+	}
+	return false
+}
+
+func (m *StateRequest_ClusterNode) GetMasterID() string {
+	if m != nil {
+		return m.MasterID
+	}
+	return ""
+}
+
+func (m *StateRequest_ClusterNode) GetPingSent() int64 {
+	if m != nil {
+		return m.PingSent
+	}
+	return 0
+}
+
+func (m *StateRequest_ClusterNode) GetPingRecv() int64 {
+	if m != nil {
+		return m.PingRecv
+	}
+	return 0
+}
+
+func (m *StateRequest_ClusterNode) GetConfigEpoch() int64 {
+	if m != nil {
+		return m.ConfigEpoch
+	}
+	return 0
+}
+
+func (m *StateRequest_ClusterNode) GetLinkStatus() string {
+	if m != nil {
+		return m.LinkStatus
+	}
+	return ""
+}
+
+func (m *StateRequest_ClusterNode) GetSlots() []string {
+	if m != nil {
+		return m.Slots
+	}
+	return nil
+}
+
+type StateRequest_HostAnnotation struct {
+	Name  string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
+}
+
+func (m *StateRequest_HostAnnotation) Reset()                    { *m = StateRequest_HostAnnotation{} }
+func (m *StateRequest_HostAnnotation) String() string            { return proto.CompactTextString(m) }
+func (*StateRequest_HostAnnotation) ProtoMessage()               {}
+func (*StateRequest_HostAnnotation) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0, 1} }
+
+func (m *StateRequest_HostAnnotation) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *StateRequest_HostAnnotation) GetValue() string {
+	if m != nil {
+		return m.Value
+	}
+	return ""
+}
+
+type StateRequest_NodeMetric struct {
+	Name  string  `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Value float64 `protobuf:"fixed64,2,opt,name=value" json:"value,omitempty"`
+}
+
+func (m *StateRequest_NodeMetric) Reset()                    { *m = StateRequest_NodeMetric{} }
+func (m *StateRequest_NodeMetric) String() string            { return proto.CompactTextString(m) }
+func (*StateRequest_NodeMetric) ProtoMessage()               {}
+func (*StateRequest_NodeMetric) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0, 2} }
+
+func (m *StateRequest_NodeMetric) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *StateRequest_NodeMetric) GetValue() float64 {
+	if m != nil {
+		return m.Value
+	}
+	return 0
 }
 
 type StateResponse struct {
@@ -90,7 +234,7 @@ func (m *NextExecutionRequest) GetNodeID() string {
 }
 
 type NextExecutionResponse struct {
-	Commands []*ExecutionCommand `protobuf:"bytes,1,rep,name=commands" json:"commands,omitempty"`
+	Commands []*NextExecutionResponse_ExecutionCommand `protobuf:"bytes,1,rep,name=commands" json:"commands,omitempty"`
 }
 
 func (m *NextExecutionResponse) Reset()                    { *m = NextExecutionResponse{} }
@@ -98,16 +242,52 @@ func (m *NextExecutionResponse) String() string            { return proto.Compac
 func (*NextExecutionResponse) ProtoMessage()               {}
 func (*NextExecutionResponse) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{3} }
 
-func (m *NextExecutionResponse) GetCommands() []*ExecutionCommand {
+func (m *NextExecutionResponse) GetCommands() []*NextExecutionResponse_ExecutionCommand {
 	if m != nil {
 		return m.Commands
 	}
 	return nil
 }
 
+type NextExecutionResponse_ExecutionCommand struct {
+	Id        string   `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Command   int64    `protobuf:"varint,2,opt,name=command" json:"command,omitempty"`
+	Arguments []string `protobuf:"bytes,3,rep,name=arguments" json:"arguments,omitempty"`
+}
+
+func (m *NextExecutionResponse_ExecutionCommand) Reset() {
+	*m = NextExecutionResponse_ExecutionCommand{}
+}
+func (m *NextExecutionResponse_ExecutionCommand) String() string { return proto.CompactTextString(m) }
+func (*NextExecutionResponse_ExecutionCommand) ProtoMessage()    {}
+func (*NextExecutionResponse_ExecutionCommand) Descriptor() ([]byte, []int) {
+	return fileDescriptor1, []int{3, 0}
+}
+
+func (m *NextExecutionResponse_ExecutionCommand) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *NextExecutionResponse_ExecutionCommand) GetCommand() int64 {
+	if m != nil {
+		return m.Command
+	}
+	return 0
+}
+
+func (m *NextExecutionResponse_ExecutionCommand) GetArguments() []string {
+	if m != nil {
+		return m.Arguments
+	}
+	return nil
+}
+
 type ReportExecutionRequest struct {
-	NodeID         string             `protobuf:"bytes,1,opt,name=nodeID" json:"nodeID,omitempty"`
-	CommandResults []*ExecutionResult `protobuf:"bytes,2,rep,name=commandResults" json:"commandResults,omitempty"`
+	NodeID         string                                    `protobuf:"bytes,1,opt,name=nodeID" json:"nodeID,omitempty"`
+	CommandResults []*ReportExecutionRequest_ExecutionResult `protobuf:"bytes,2,rep,name=commandResults" json:"commandResults,omitempty"`
 }
 
 func (m *ReportExecutionRequest) Reset()                    { *m = ReportExecutionRequest{} }
@@ -122,11 +302,47 @@ func (m *ReportExecutionRequest) GetNodeID() string {
 	return ""
 }
 
-func (m *ReportExecutionRequest) GetCommandResults() []*ExecutionResult {
+func (m *ReportExecutionRequest) GetCommandResults() []*ReportExecutionRequest_ExecutionResult {
 	if m != nil {
 		return m.CommandResults
 	}
 	return nil
+}
+
+type ReportExecutionRequest_ExecutionResult struct {
+	Id      string   `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Result  []string `protobuf:"bytes,2,rep,name=result" json:"result,omitempty"`
+	Success bool     `protobuf:"varint,3,opt,name=success" json:"success,omitempty"`
+}
+
+func (m *ReportExecutionRequest_ExecutionResult) Reset() {
+	*m = ReportExecutionRequest_ExecutionResult{}
+}
+func (m *ReportExecutionRequest_ExecutionResult) String() string { return proto.CompactTextString(m) }
+func (*ReportExecutionRequest_ExecutionResult) ProtoMessage()    {}
+func (*ReportExecutionRequest_ExecutionResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor1, []int{4, 0}
+}
+
+func (m *ReportExecutionRequest_ExecutionResult) GetId() string {
+	if m != nil {
+		return m.Id
+	}
+	return ""
+}
+
+func (m *ReportExecutionRequest_ExecutionResult) GetResult() []string {
+	if m != nil {
+		return m.Result
+	}
+	return nil
+}
+
+func (m *ReportExecutionRequest_ExecutionResult) GetSuccess() bool {
+	if m != nil {
+		return m.Success
+	}
+	return false
 }
 
 type ReportExecutionResponse struct {
@@ -137,228 +353,18 @@ func (m *ReportExecutionResponse) String() string            { return proto.Comp
 func (*ReportExecutionResponse) ProtoMessage()               {}
 func (*ReportExecutionResponse) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{5} }
 
-// *
-// TYPES
-type ClusterNode struct {
-	NodeID      string   `protobuf:"bytes,1,opt,name=nodeID" json:"nodeID,omitempty"`
-	Addr        string   `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
-	Flags       string   `protobuf:"bytes,3,opt,name=flags" json:"flags,omitempty"`
-	Role        string   `protobuf:"bytes,4,opt,name=role" json:"role,omitempty"`
-	Myself      bool     `protobuf:"varint,5,opt,name=myself" json:"myself,omitempty"`
-	MasterID    string   `protobuf:"bytes,6,opt,name=masterID" json:"masterID,omitempty"`
-	PingSent    int64    `protobuf:"varint,7,opt,name=pingSent" json:"pingSent,omitempty"`
-	PingRecv    int64    `protobuf:"varint,8,opt,name=pingRecv" json:"pingRecv,omitempty"`
-	ConfigEpoch int64    `protobuf:"varint,9,opt,name=configEpoch" json:"configEpoch,omitempty"`
-	LinkStatus  string   `protobuf:"bytes,10,opt,name=linkStatus" json:"linkStatus,omitempty"`
-	Slots       []string `protobuf:"bytes,11,rep,name=slots" json:"slots,omitempty"`
-}
-
-func (m *ClusterNode) Reset()                    { *m = ClusterNode{} }
-func (m *ClusterNode) String() string            { return proto.CompactTextString(m) }
-func (*ClusterNode) ProtoMessage()               {}
-func (*ClusterNode) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{6} }
-
-func (m *ClusterNode) GetNodeID() string {
-	if m != nil {
-		return m.NodeID
-	}
-	return ""
-}
-
-func (m *ClusterNode) GetAddr() string {
-	if m != nil {
-		return m.Addr
-	}
-	return ""
-}
-
-func (m *ClusterNode) GetFlags() string {
-	if m != nil {
-		return m.Flags
-	}
-	return ""
-}
-
-func (m *ClusterNode) GetRole() string {
-	if m != nil {
-		return m.Role
-	}
-	return ""
-}
-
-func (m *ClusterNode) GetMyself() bool {
-	if m != nil {
-		return m.Myself
-	}
-	return false
-}
-
-func (m *ClusterNode) GetMasterID() string {
-	if m != nil {
-		return m.MasterID
-	}
-	return ""
-}
-
-func (m *ClusterNode) GetPingSent() int64 {
-	if m != nil {
-		return m.PingSent
-	}
-	return 0
-}
-
-func (m *ClusterNode) GetPingRecv() int64 {
-	if m != nil {
-		return m.PingRecv
-	}
-	return 0
-}
-
-func (m *ClusterNode) GetConfigEpoch() int64 {
-	if m != nil {
-		return m.ConfigEpoch
-	}
-	return 0
-}
-
-func (m *ClusterNode) GetLinkStatus() string {
-	if m != nil {
-		return m.LinkStatus
-	}
-	return ""
-}
-
-func (m *ClusterNode) GetSlots() []string {
-	if m != nil {
-		return m.Slots
-	}
-	return nil
-}
-
-type HostAnnotation struct {
-	Name  string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Value string `protobuf:"bytes,2,opt,name=value" json:"value,omitempty"`
-}
-
-func (m *HostAnnotation) Reset()                    { *m = HostAnnotation{} }
-func (m *HostAnnotation) String() string            { return proto.CompactTextString(m) }
-func (*HostAnnotation) ProtoMessage()               {}
-func (*HostAnnotation) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{7} }
-
-func (m *HostAnnotation) GetName() string {
-	if m != nil {
-		return m.Name
-	}
-	return ""
-}
-
-func (m *HostAnnotation) GetValue() string {
-	if m != nil {
-		return m.Value
-	}
-	return ""
-}
-
-type NodeMetric struct {
-	Name  string  `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Value float64 `protobuf:"fixed64,2,opt,name=value" json:"value,omitempty"`
-}
-
-func (m *NodeMetric) Reset()                    { *m = NodeMetric{} }
-func (m *NodeMetric) String() string            { return proto.CompactTextString(m) }
-func (*NodeMetric) ProtoMessage()               {}
-func (*NodeMetric) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{8} }
-
-func (m *NodeMetric) GetName() string {
-	if m != nil {
-		return m.Name
-	}
-	return ""
-}
-
-func (m *NodeMetric) GetValue() float64 {
-	if m != nil {
-		return m.Value
-	}
-	return 0
-}
-
-type ExecutionCommand struct {
-	Id        string   `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
-	Command   int64    `protobuf:"varint,2,opt,name=command" json:"command,omitempty"`
-	Arguments []string `protobuf:"bytes,3,rep,name=arguments" json:"arguments,omitempty"`
-}
-
-func (m *ExecutionCommand) Reset()                    { *m = ExecutionCommand{} }
-func (m *ExecutionCommand) String() string            { return proto.CompactTextString(m) }
-func (*ExecutionCommand) ProtoMessage()               {}
-func (*ExecutionCommand) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{9} }
-
-func (m *ExecutionCommand) GetId() string {
-	if m != nil {
-		return m.Id
-	}
-	return ""
-}
-
-func (m *ExecutionCommand) GetCommand() int64 {
-	if m != nil {
-		return m.Command
-	}
-	return 0
-}
-
-func (m *ExecutionCommand) GetArguments() []string {
-	if m != nil {
-		return m.Arguments
-	}
-	return nil
-}
-
-type ExecutionResult struct {
-	Id      string   `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
-	Result  []string `protobuf:"bytes,2,rep,name=result" json:"result,omitempty"`
-	Success bool     `protobuf:"varint,3,opt,name=success" json:"success,omitempty"`
-}
-
-func (m *ExecutionResult) Reset()                    { *m = ExecutionResult{} }
-func (m *ExecutionResult) String() string            { return proto.CompactTextString(m) }
-func (*ExecutionResult) ProtoMessage()               {}
-func (*ExecutionResult) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{10} }
-
-func (m *ExecutionResult) GetId() string {
-	if m != nil {
-		return m.Id
-	}
-	return ""
-}
-
-func (m *ExecutionResult) GetResult() []string {
-	if m != nil {
-		return m.Result
-	}
-	return nil
-}
-
-func (m *ExecutionResult) GetSuccess() bool {
-	if m != nil {
-		return m.Success
-	}
-	return false
-}
-
 func init() {
 	proto.RegisterType((*StateRequest)(nil), "api.StateRequest")
+	proto.RegisterType((*StateRequest_ClusterNode)(nil), "api.StateRequest.ClusterNode")
+	proto.RegisterType((*StateRequest_HostAnnotation)(nil), "api.StateRequest.HostAnnotation")
+	proto.RegisterType((*StateRequest_NodeMetric)(nil), "api.StateRequest.NodeMetric")
 	proto.RegisterType((*StateResponse)(nil), "api.StateResponse")
 	proto.RegisterType((*NextExecutionRequest)(nil), "api.NextExecutionRequest")
 	proto.RegisterType((*NextExecutionResponse)(nil), "api.NextExecutionResponse")
+	proto.RegisterType((*NextExecutionResponse_ExecutionCommand)(nil), "api.NextExecutionResponse.ExecutionCommand")
 	proto.RegisterType((*ReportExecutionRequest)(nil), "api.ReportExecutionRequest")
+	proto.RegisterType((*ReportExecutionRequest_ExecutionResult)(nil), "api.ReportExecutionRequest.ExecutionResult")
 	proto.RegisterType((*ReportExecutionResponse)(nil), "api.ReportExecutionResponse")
-	proto.RegisterType((*ClusterNode)(nil), "api.ClusterNode")
-	proto.RegisterType((*HostAnnotation)(nil), "api.HostAnnotation")
-	proto.RegisterType((*NodeMetric)(nil), "api.NodeMetric")
-	proto.RegisterType((*ExecutionCommand)(nil), "api.ExecutionCommand")
-	proto.RegisterType((*ExecutionResult)(nil), "api.ExecutionResult")
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -502,43 +508,44 @@ var _Manager_serviceDesc = grpc.ServiceDesc{
 func init() { proto.RegisterFile("manager.proto", fileDescriptor1) }
 
 var fileDescriptor1 = []byte{
-	// 599 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x54, 0xdd, 0x6e, 0xd3, 0x30,
-	0x14, 0x26, 0xcd, 0xd6, 0x26, 0xa7, 0x6c, 0x1d, 0x66, 0x2d, 0x5e, 0x99, 0x50, 0x94, 0x0b, 0x54,
-	0x6e, 0x2a, 0x31, 0xa4, 0x5d, 0x20, 0xb8, 0x40, 0x5b, 0xa5, 0x0d, 0x69, 0xbb, 0x70, 0xb9, 0xe2,
-	0xce, 0x24, 0x6e, 0x17, 0x91, 0xd8, 0x21, 0x76, 0xa6, 0xed, 0x89, 0x78, 0x1b, 0xde, 0x81, 0x37,
-	0x41, 0xfe, 0x49, 0xff, 0x11, 0xdc, 0xf9, 0x3b, 0xdf, 0xf9, 0x7c, 0x7c, 0xfe, 0x0c, 0x07, 0x05,
-	0xe5, 0x74, 0xce, 0xaa, 0x71, 0x59, 0x09, 0x25, 0x90, 0x4f, 0xcb, 0x2c, 0xfe, 0xe5, 0xc1, 0xd3,
-	0xa9, 0xa2, 0x8a, 0x11, 0xf6, 0xa3, 0x66, 0x52, 0x21, 0x0c, 0x9d, 0x4c, 0x4e, 0x8a, 0x52, 0x3d,
-	0x62, 0x2f, 0xf2, 0x46, 0x01, 0x69, 0x20, 0x7a, 0x0d, 0xfb, 0x5c, 0xa4, 0x4c, 0xe2, 0x56, 0xe4,
-	0x8f, 0xba, 0x67, 0x47, 0x63, 0x5a, 0x66, 0xe3, 0x8b, 0xbc, 0x96, 0x8a, 0x55, 0xb7, 0x22, 0x65,
-	0xc4, 0xd2, 0xe8, 0x23, 0xf4, 0xee, 0x84, 0x54, 0x9f, 0x38, 0x17, 0x8a, 0xaa, 0x4c, 0x70, 0x89,
-	0x7d, 0xa3, 0x78, 0x6e, 0x14, 0x57, 0x6b, 0x1c, 0xd9, 0xf4, 0x45, 0x6f, 0xa0, 0x53, 0x30, 0x55,
-	0x65, 0x89, 0xc4, 0x7b, 0x46, 0xd6, 0x33, 0x32, 0x1d, 0xe1, 0xc6, 0xd8, 0x49, 0xc3, 0x23, 0x04,
-	0x7b, 0x34, 0x4d, 0x2b, 0xbc, 0x1f, 0x79, 0xa3, 0x90, 0x98, 0x73, 0xdc, 0x83, 0x03, 0x97, 0x8f,
-	0x2c, 0x05, 0x97, 0x2c, 0x1e, 0xc3, 0xf1, 0x2d, 0x7b, 0x50, 0x93, 0x07, 0x96, 0xd4, 0x26, 0xa2,
-	0x4b, 0x74, 0x00, 0x6d, 0xfd, 0xde, 0xeb, 0x4b, 0x93, 0x67, 0x48, 0x1c, 0x8a, 0x3f, 0x43, 0x7f,
-	0xc3, 0xdf, 0x5e, 0x84, 0xde, 0x42, 0x90, 0x88, 0xa2, 0xa0, 0x3c, 0x95, 0xd8, 0x33, 0x2f, 0xeb,
-	0x9b, 0x97, 0x2d, 0x3c, 0x2f, 0x2c, 0x4b, 0x16, 0x6e, 0x31, 0x87, 0x01, 0x61, 0xa5, 0xa8, 0xfe,
-	0x3b, 0x3a, 0xfa, 0x00, 0x87, 0x4e, 0x4d, 0x98, 0xac, 0x73, 0xd5, 0x54, 0xfb, 0x78, 0x3d, 0x94,
-	0x25, 0xc9, 0x86, 0x6f, 0x7c, 0x02, 0x2f, 0xb6, 0xe2, 0xb9, 0x32, 0xfc, 0x6c, 0x41, 0x77, 0xa5,
-	0x59, 0x7f, 0x7d, 0x40, 0x53, 0xd3, 0xd6, 0xb2, 0xa6, 0xe8, 0x18, 0xf6, 0x67, 0x39, 0x9d, 0xeb,
-	0x3e, 0x6a, 0xa3, 0x05, 0xda, 0xb3, 0x12, 0x39, 0xc3, 0x7b, 0xd6, 0x53, 0x9f, 0xf5, 0xad, 0xc5,
-	0xa3, 0x64, 0xf9, 0xcc, 0xf4, 0x24, 0x20, 0x0e, 0xa1, 0x21, 0x04, 0x05, 0xd5, 0xb1, 0xaf, 0x2f,
-	0x71, 0xdb, 0xf8, 0x2f, 0xb0, 0xe6, 0xca, 0x8c, 0xcf, 0xa7, 0x8c, 0x2b, 0xdc, 0x89, 0xbc, 0x91,
-	0x4f, 0x16, 0xb8, 0xe1, 0x08, 0x4b, 0xee, 0x71, 0xb0, 0xe4, 0x34, 0x46, 0x11, 0x74, 0x13, 0xc1,
-	0x67, 0xd9, 0x7c, 0x52, 0x8a, 0xe4, 0x0e, 0x87, 0x86, 0x5e, 0x35, 0xa1, 0x57, 0x00, 0x79, 0xc6,
-	0xbf, 0xeb, 0x79, 0xa8, 0x25, 0x06, 0x13, 0x77, 0xc5, 0xa2, 0xf3, 0x92, 0xb9, 0x50, 0x12, 0x77,
-	0x23, 0x5f, 0xe7, 0x65, 0x40, 0xfc, 0x1e, 0x0e, 0xd7, 0x67, 0x54, 0x67, 0xca, 0x69, 0xc1, 0x5c,
-	0xa5, 0xcc, 0x59, 0x6b, 0xef, 0x69, 0x5e, 0x33, 0x57, 0x28, 0x0b, 0xe2, 0x73, 0x80, 0xe5, 0xa0,
-	0xfe, 0x5b, 0xe7, 0x35, 0xba, 0xaf, 0x70, 0xb4, 0x39, 0x46, 0xe8, 0x10, 0x5a, 0x59, 0xea, 0xb4,
-	0xad, 0x2c, 0xd5, 0x9b, 0xe9, 0xda, 0x6d, 0xb4, 0x3e, 0x69, 0x20, 0x3a, 0x85, 0x90, 0x56, 0xf3,
-	0xba, 0x60, 0x5c, 0xd9, 0x5d, 0x0b, 0xc9, 0xd2, 0x10, 0x4f, 0xa1, 0xb7, 0x31, 0x37, 0x5b, 0x57,
-	0x0f, 0xa0, 0x5d, 0x19, 0xc6, 0x4c, 0x5b, 0x48, 0x1c, 0xd2, 0x21, 0x65, 0x9d, 0x24, 0x4c, 0xda,
-	0xd6, 0x07, 0xa4, 0x81, 0x67, 0xbf, 0x3d, 0xe8, 0xdc, 0xd8, 0xef, 0x04, 0x9d, 0x43, 0xd7, 0x4e,
-	0x9d, 0x59, 0x3c, 0xf4, 0xcc, 0x8c, 0xea, 0xea, 0xa7, 0x32, 0x44, 0xab, 0x26, 0x37, 0x90, 0x4f,
-	0xd0, 0x15, 0x1c, 0xac, 0x6d, 0x1a, 0x3a, 0xb1, 0x9b, 0xbe, 0x63, 0x5b, 0x87, 0xc3, 0x5d, 0xd4,
-	0xe2, 0xa6, 0x2f, 0xd0, 0xdf, 0x9e, 0x7b, 0x9d, 0xc0, 0x4b, 0x23, 0xdb, 0xbd, 0x83, 0xc3, 0xd3,
-	0xdd, 0x64, 0x73, 0xeb, 0xb7, 0xb6, 0xf9, 0x27, 0xdf, 0xfd, 0x09, 0x00, 0x00, 0xff, 0xff, 0x1b,
-	0x4a, 0x68, 0xd8, 0x38, 0x05, 0x00, 0x00,
+	// 613 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x54, 0xcd, 0x4e, 0xdc, 0x30,
+	0x10, 0x26, 0xbb, 0xec, 0x4f, 0x66, 0x0b, 0xb4, 0x16, 0x50, 0x93, 0xd2, 0x2a, 0xca, 0x69, 0xa5,
+	0x4a, 0x39, 0x80, 0xc4, 0xa1, 0xb7, 0x0a, 0x50, 0xa1, 0x12, 0x1c, 0xbc, 0x3d, 0xf5, 0xe6, 0x26,
+	0x66, 0x89, 0x9a, 0xd8, 0x69, 0xec, 0x20, 0x78, 0x8e, 0x3e, 0x44, 0x5f, 0xa2, 0x4f, 0xd2, 0x5b,
+	0xdf, 0xa4, 0xf2, 0x4f, 0x76, 0xc3, 0x66, 0x69, 0x7b, 0xcb, 0x37, 0xf3, 0x7d, 0x63, 0x7f, 0x9e,
+	0x99, 0xc0, 0x56, 0x41, 0x39, 0x9d, 0xb3, 0x2a, 0x2e, 0x2b, 0xa1, 0x04, 0xea, 0xd3, 0x32, 0x8b,
+	0xbe, 0x0f, 0xe0, 0xd9, 0x4c, 0x51, 0xc5, 0x08, 0xfb, 0x56, 0x33, 0xa9, 0x10, 0x86, 0x51, 0x26,
+	0xcf, 0x8b, 0x52, 0x3d, 0x60, 0x2f, 0xf4, 0xa6, 0x63, 0xd2, 0x40, 0x74, 0x0c, 0x03, 0x2e, 0x52,
+	0x26, 0x71, 0x2f, 0xec, 0x4f, 0x27, 0x47, 0xaf, 0x63, 0x5a, 0x66, 0x71, 0x5b, 0x1b, 0x9f, 0xe6,
+	0xb5, 0x54, 0xac, 0xba, 0x16, 0x29, 0x23, 0x96, 0x8b, 0x3e, 0xc2, 0xce, 0xad, 0x90, 0xea, 0x3d,
+	0xe7, 0x42, 0x51, 0x95, 0x09, 0x2e, 0x71, 0xdf, 0xc8, 0xc3, 0xae, 0xfc, 0xe2, 0x11, 0x91, 0xac,
+	0x0a, 0xd1, 0x09, 0x8c, 0x0a, 0xa6, 0xaa, 0x2c, 0x91, 0x78, 0xd3, 0xd4, 0x38, 0xec, 0xd6, 0xd0,
+	0x67, 0x5f, 0x19, 0x12, 0x69, 0xc8, 0x08, 0xc1, 0x26, 0x4d, 0xd3, 0x0a, 0x0f, 0x42, 0x6f, 0xea,
+	0x13, 0xf3, 0x1d, 0xfc, 0xe8, 0xc1, 0xa4, 0x75, 0x5d, 0xb4, 0x0f, 0x43, 0x7d, 0xe1, 0xcb, 0x33,
+	0xe3, 0xda, 0x27, 0x0e, 0x2d, 0xb4, 0xbd, 0xa5, 0x16, 0xed, 0xc2, 0xe0, 0x26, 0xa7, 0x73, 0xed,
+	0x44, 0x07, 0x2d, 0xd0, 0xcc, 0x4a, 0xe4, 0x0c, 0x6f, 0x5a, 0xa6, 0xfe, 0xd6, 0x55, 0x8b, 0x07,
+	0xc9, 0xf2, 0x1b, 0x73, 0xf6, 0x98, 0x38, 0x84, 0x02, 0x18, 0x17, 0x54, 0x9f, 0x7d, 0x79, 0x86,
+	0x87, 0x86, 0xbf, 0xc0, 0x3a, 0x57, 0x66, 0x7c, 0x3e, 0x63, 0x5c, 0xe1, 0x51, 0xe8, 0x4d, 0xfb,
+	0x64, 0x81, 0x9b, 0x1c, 0x61, 0xc9, 0x1d, 0x1e, 0x2f, 0x73, 0x1a, 0xa3, 0x10, 0x26, 0x89, 0xe0,
+	0x37, 0xd9, 0xfc, 0xbc, 0x14, 0xc9, 0x2d, 0xf6, 0x4d, 0xba, 0x1d, 0x42, 0x6f, 0x00, 0xf2, 0x8c,
+	0x7f, 0xd5, 0xef, 0x55, 0x4b, 0x0c, 0xe6, 0xdc, 0x56, 0x44, 0xfb, 0x92, 0xb9, 0x50, 0x12, 0x4f,
+	0xc2, 0xbe, 0xf6, 0x65, 0x40, 0xf0, 0x0e, 0xb6, 0x1f, 0x37, 0x46, 0x3b, 0xe5, 0xb4, 0x60, 0xee,
+	0xa5, 0xcc, 0xb7, 0xd6, 0xde, 0xd1, 0xbc, 0x66, 0xee, 0xa1, 0x2c, 0x08, 0x4e, 0x00, 0x96, 0x0d,
+	0xf9, 0xb7, 0xce, 0x73, 0xba, 0x68, 0x07, 0xb6, 0x5c, 0x57, 0x65, 0x29, 0xb8, 0x64, 0x51, 0x0c,
+	0xbb, 0xd7, 0xec, 0x5e, 0x9d, 0xdf, 0xb3, 0xa4, 0x36, 0xc3, 0xe1, 0xa6, 0xf5, 0x89, 0xb6, 0x45,
+	0x3f, 0x3d, 0xd8, 0x5b, 0x11, 0xd8, 0x4a, 0xe8, 0x03, 0x8c, 0x13, 0x51, 0x14, 0x94, 0xa7, 0x12,
+	0x7b, 0x66, 0x8a, 0xde, 0x9a, 0x29, 0x5a, 0xcb, 0x8e, 0x17, 0x91, 0x53, 0xab, 0x21, 0x0b, 0x71,
+	0xf0, 0x19, 0x9e, 0xaf, 0x66, 0xd1, 0x36, 0xf4, 0xb2, 0xd4, 0x5d, 0xa5, 0x97, 0xa5, 0x7a, 0x99,
+	0x1c, 0xdf, 0xf8, 0xeb, 0x93, 0x06, 0xa2, 0x43, 0xf0, 0x69, 0x35, 0xaf, 0x0b, 0xc6, 0x95, 0xdd,
+	0x08, 0x9f, 0x2c, 0x03, 0xd1, 0x2f, 0x0f, 0xf6, 0x09, 0x2b, 0x45, 0xf5, 0xdf, 0x8e, 0xd1, 0x0c,
+	0xb6, 0x5d, 0x6d, 0xc2, 0x64, 0x9d, 0xab, 0x66, 0x4d, 0xad, 0xbb, 0xf5, 0xc5, 0xe2, 0xb6, 0xe1,
+	0x3a, 0x57, 0x64, 0xa5, 0x44, 0x30, 0x83, 0x9d, 0x15, 0x4a, 0xc7, 0xe2, 0x3e, 0x0c, 0x2b, 0x93,
+	0x31, 0xe7, 0xf9, 0xc4, 0x21, 0x6d, 0x5d, 0xd6, 0x49, 0xc2, 0xa4, 0x5d, 0x93, 0x31, 0x69, 0x60,
+	0x74, 0x00, 0x2f, 0x3b, 0xd7, 0xb1, 0xcf, 0x7d, 0xf4, 0xdb, 0x83, 0xd1, 0x95, 0xfd, 0x49, 0xa1,
+	0x13, 0x98, 0x58, 0x9a, 0x99, 0x04, 0xf4, 0xa2, 0xb3, 0xeb, 0x01, 0x6a, 0x87, 0xdc, 0xa0, 0x6c,
+	0xa0, 0x0b, 0xd8, 0x7a, 0xd4, 0x4b, 0x74, 0xb0, 0xae, 0xbf, 0xb6, 0x42, 0xf0, 0x74, 0xeb, 0xa3,
+	0x0d, 0xf4, 0x09, 0xf6, 0xba, 0x17, 0xd5, 0xde, 0x5e, 0xfd, 0xe5, 0x4d, 0x83, 0xc3, 0xf5, 0xc9,
+	0xa6, 0xea, 0x97, 0xa1, 0xf9, 0xfb, 0x1e, 0xff, 0x09, 0x00, 0x00, 0xff, 0xff, 0x80, 0x72, 0x27,
+	0x98, 0x8e, 0x05, 0x00, 0x00,
 }

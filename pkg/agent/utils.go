@@ -10,11 +10,11 @@ import (
  * This file contains internal helper functions used by the agent only
  */
 
-func transformNodes(nodes *[]redis.ClusterNode) *[]*pb.ClusterNode {
-	var tNodes = make([]*pb.ClusterNode, len(*nodes))
+func transformNodes(nodes *[]redis.ClusterNode) *[]*pb.StateRequest_ClusterNode {
+	var tNodes = make([]*pb.StateRequest_ClusterNode, len(*nodes))
 
 	for i, node := range *nodes {
-		tNode := pb.ClusterNode{
+		tNode := pb.StateRequest_ClusterNode{
 			NodeID:      node.NodeID,
 			Addr:        node.Addr,
 			Flags:       node.Flags,
@@ -33,11 +33,11 @@ func transformNodes(nodes *[]redis.ClusterNode) *[]*pb.ClusterNode {
 	return &tNodes
 }
 
-func transformHostAnnotations(hostAnnotations *map[string]string) *[]*pb.HostAnnotation {
-	var tAnnotations = []*pb.HostAnnotation{}
+func transformHostAnnotations(hostAnnotations *map[string]string) *[]*pb.StateRequest_HostAnnotation {
+	var tAnnotations = []*pb.StateRequest_HostAnnotation{}
 
 	for name, value := range *hostAnnotations {
-		tAnnotation := pb.HostAnnotation{
+		tAnnotation := pb.StateRequest_HostAnnotation{
 			Name:  name,
 			Value: value,
 		}
@@ -48,12 +48,12 @@ func transformHostAnnotations(hostAnnotations *map[string]string) *[]*pb.HostAnn
 	return &tAnnotations
 }
 
-func transformMetrics(metrics *chan Metric) *[]*pb.NodeMetric {
-	var result []*pb.NodeMetric
+func transformMetrics(metrics *chan Metric) *[]*pb.StateRequest_NodeMetric {
+	var result []*pb.StateRequest_NodeMetric
 
 	for metric := range *metrics {
 		if pkg.AgentMetrics[metric.Name] {
-			result = append(result, &pb.NodeMetric{Name: metric.Name, Value: metric.Value})
+			result = append(result, &pb.StateRequest_NodeMetric{Name: metric.Name, Value: metric.Value})
 		}
 	}
 

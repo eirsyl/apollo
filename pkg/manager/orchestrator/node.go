@@ -117,7 +117,7 @@ type Node struct {
 	MarkedForDeletion bool                        `json:"markedForDeletion"`
 }
 
-func newClusterNeighbourFromPb(nodes []*pb.ClusterNode) (map[string]ClusterNeighbour, ClusterNeighbour, error) {
+func newClusterNeighbourFromPb(nodes []*pb.StateRequest_ClusterNode) (map[string]ClusterNeighbour, ClusterNeighbour, error) {
 	res := map[string]ClusterNeighbour{}
 	var myself ClusterNeighbour
 
