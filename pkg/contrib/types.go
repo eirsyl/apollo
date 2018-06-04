@@ -1,7 +1,5 @@
 package contrib
 
-import "errors"
-
 // Command describes commands that the manager can issue to agents
 //go:generate stringer -type=Command
 type Command int
@@ -37,27 +35,8 @@ type NodeCommand struct {
 // NewNodeCommand is used to create a new node command from the protobuf response
 func NewNodeCommand(id string, command int64, arguments []string) (*NodeCommand, error) {
 	var commandType Command
-	switch command {
-	case 1:
-		commandType = CommandAddSlots
-	case 2:
-		commandType = CommandSetReplicate
-	case 3:
-		commandType = CommandSetEpoch
-	case 4:
-		commandType = CommandJoinCluster
-	case 5:
-		commandType = CommandCountKeysInSlots
-	case 6:
-		commandType = CommandSetSlotState
-	case 7:
-		commandType = CommandBumpEpoch
-	case 8:
-		commandType = CommandDelSlots
-	case 9:
-		commandType = CommandMigrateSlots
-	default:
-		return nil, errors.New("Unsupported command type")
+	{
+		commandType = Command(command)
 	}
 
 	return &NodeCommand{

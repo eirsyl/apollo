@@ -22,15 +22,6 @@ M = $(shell printf "\033[34;1m▶\033[0m")
 all: test build | $(BASE) ;
 	$Q
 
-generate: vendor | $(BASE) $(STRINGER) ; $(info $(M) generating code…) @ ## Generate code
-	$Q cd $(BASE) && $(GO) generate ./...
-
-build: vendor generate | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
-	$Q cd $(BASE) && $(GO) build \
-		-tags release \
-		-ldflags '-X $(IMPORT)/pkg.Version=$(VERSION) -X $(IMPORT)/pkg.BuildDate=$(DATE)' \
-		-o bin/$(PACKAGE) main.go
-
 $(BASE): ; $(info $(M) checking GOPATH…)
 	@echo
 
@@ -131,6 +122,17 @@ vendor: Gopkg.lock | $(BASE) $(DEP) ; $(info $(M) retrieving dependencies…)
 
 gen-proto: pkg/proto | $(BASE) $(PROTOC) $(PROTOGENGO) ; $(info $(M) generating protocol buffers…)
 	$Q cd $(BASE) && $(PROTOC) -I pkg/proto pkg/proto/* --go_out=plugins=grpc:pkg/api
+
+# Build
+
+generate: vendor | $(BASE) $(STRINGER) ; $(info $(M) generating code…) @ ## Generate code
+	$Q cd $(BASE) && $(GO) generate ./...
+
+build: vendor generate | $(BASE) ; $(info $(M) building executable…) @ ## Build program binary
+	$Q cd $(BASE) && $(GO) build \
+		-tags release \
+		-ldflags '-X $(IMPORT)/pkg.Version=$(VERSION) -X $(IMPORT)/pkg.BuildDate=$(DATE)' \
+		-o bin/$(PACKAGE) main.go
 
 # Docker
 
